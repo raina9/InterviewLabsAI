@@ -1,0 +1,420 @@
+# =============================================================================
+# Interview Lab — Application Configuration
+# =============================================================================
+# All sensitive values MUST come from environment variables.
+# Secrets are never hardcoded. Defaults shown are for local development only.
+# AWS and Datadog properties are plug-in ready (commented) — OSS equivalents active.
+# Property comments follow standard: env var name → default → purpose.
+# =============================================================================
+
+spring:
+  application:
+    # Service name used in structured logs, distributed tracing, and service discovery
+    name: ${APP_NAME:interview-lab}
+
+  # ---------------------------------------------------------------------------
+  # Virtual Threads — Java 25
+  # Applies globally: Tomcat request threads + all @Async task executors.
+  # All I/O-bound operations (LLM calls, DB queries) benefit automatically.
+  # ---------------------------------------------------------------------------
+  threads:
+    virtual:
+      enabled: true
+
+  # ---------------------------------------------------------------------------
+  # Database — PostgreSQL
+  # Prod: Supabase (hosted, Transaction pooler URL recommended for Railway)
+  # Local: Docker Compose postgres service (see docker-compose.yml)
+  # AWS equivalent: RDSConnectionConfig → RDS PostgreSQL (plug-in ready)
+  # ---------------------------------------------------------------------------
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/interviewlab}
+    username: ${DB_USERNAME:interviewlab}
+    password: ${DB_PASSWORD:interviewlab}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      # Max connections per pod — tune per Supabase tier (free tier: 15 max)
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      # Fail on startup if DB unreachable — fast failure is better than silent startup
+      initialization-fail-timeout: 1
+      connection-timeout: ${DB_CONN_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_MAX_LIFETIME_MS:1800000}
+      pool-name: InterviewLabHikariPool
+
+  jpa:
+    # Flyway owns all schema changes — never let Hibernate modify schema
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Batch fetching reduces N+1 queries on collection associations
+        default_batch_fetch_size: ${JPA_BATCH_FETCH_SIZE:50}
+        jdbc:
+          batch_size: ${JPA_BATCH_SIZE:25}
+        order_inserts: true
+        order_updates: true
+    # Show SQL only when debugging — disable in prod via LOG_SQL=false
+    show-sql: ${LOG_SQL:false}
+    # Open Session in View = false: prevents lazy loading outside transaction boundary
+    open-in-view: false
+
+  # ---------------------------------------------------------------------------
+  # Flyway — Database Migrations
+  # All schema changes via versioned SQL scripts in db/migration/.
+  # Naming: V{n}__{description}.sql (e.g. V1__create_users.sql)
+  # ---------------------------------------------------------------------------
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # baseline-on-migrate: false — new schema, no baseline needed
+    baseline-on-migrate: false
+    # Validate checksums on startup — catches accidental file edits post-deploy
+    validate-on-migrate: true
+    # Out of order migrations rejected — enforce sequential versioning
+    out-of-order: false
+
+  # ---------------------------------------------------------------------------
+  # Security — Google OAuth2 Login
+  # Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client IDs
+  # ---------------------------------------------------------------------------
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - email
+              - profile
+            redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/v1/auth/oauth2/callback}
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+            # Google's OIDC sub claim is the stable unique identifier for a user
+            user-name-attribute: sub
+
+  # ---------------------------------------------------------------------------
+  # Kafka — Active (OSS)
+  # Prod: Upstash Kafka (managed, serverless, free tier available)
+  # Local: Docker Compose kafka service (see docker-compose.yml)
+  # V1 default: EventPublisher (in-process) — Kafka activates when broker is configured
+  # V2 unpark trigger: multi-instance deploy or async scoring demand
+  # AWS equivalent: SQSMessagePublisher → aws-sdk/sqs (plug-in ready)
+  # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Spring AI — Ollama (OSS active: local LLM, zero cost)
+  # Requires Ollama running locally: https://ollama.com
+  # Pull model before starting: ollama pull llama3.2
+  # Gemini provider stays wired but is parked — switch via DEFAULT_AI_PROVIDER env var.
+  # ---------------------------------------------------------------------------
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+      chat:
+        # spring.ai.ollama.chat.model — binds to OllamaChatProperties.model (direct field).
+        # toOptions() reads this field. spring.ai.ollama.chat.options.model binds to the
+        # Options inner class which toOptions() does NOT read — verified via javap.
+        model: ${OLLAMA_MODEL:llama3.2}
+        temperature: ${OLLAMA_TEMPERATURE:0.7}
+      # never: assume model is already pulled — prevents startup failure when Ollama is offline
+      init:
+        pull-model-strategy: never
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      # acks=all: leader + all ISR replicas acknowledge before returning success
+      acks: ${KAFKA_PRODUCER_ACKS:all}
+      retries: ${KAFKA_PRODUCER_RETRIES:3}
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        # Idempotent producer: exactly-once delivery within a single session
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:interview-lab-group}
+      # earliest: read from beginning on first start — ensures no event loss on deploy
+      auto-offset-reset: ${KAFKA_OFFSET_RESET:earliest}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        # read_committed: consumers only see messages from committed transactions
+        isolation.level: read_committed
+    # Upstash SASL/TLS — set when connecting to Upstash prod broker
+    properties:
+      security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+      sasl.mechanism: ${KAFKA_SASL_MECHANISM:PLAIN}
+      sasl.jaas.config: ${KAFKA_SASL_JAAS_CONFIG:}
+
+  # ---------------------------------------------------------------------------
+  # Spring MVC — async request timeout
+  # Safety net for async controllers (Callable / DeferredResult).
+  # Current controllers are synchronous (virtual threads); guards future async additions.
+  # Real Ollama timeout is enforced at RestClient level (WebMvcConfig.restClientBuilder).
+  # ---------------------------------------------------------------------------
+  mvc:
+    async:
+      request-timeout: 120000
+
+# =============================================================================
+# Interview Lab Application Properties
+# =============================================================================
+app:
+
+  # ---------------------------------------------------------------------------
+  # Auth — mode-switched: dev (X-Dev-Token) | oauth (Google OAuth2 + JWT cookie)
+  # Swap mode via AUTH_MODE env var — no code change required.
+  # dev mode:   DevTokenFilter active, oauth2Login disabled
+  # oauth mode: JwtAuthFilter + oauth2Login active, DevTokenFilter skipped
+  # ---------------------------------------------------------------------------
+  auth:
+    # dev | oauth — controls which auth path is active (see SecurityConfig)
+    mode: ${AUTH_MODE:dev}
+    # Dev token compared against X-Dev-Token request header in dev mode
+    dev-token: ${DEV_TOKEN:dev-secret}
+    # Fixed principal injected into SecurityContext in dev mode
+    dev-user-id: ${DEV_USER_ID:00000000-0000-0000-0000-000000000001}
+    dev-user-email: ${DEV_USER_EMAIL:dev@interviewlab.local}
+    dev-user-name: ${DEV_USER_NAME:InterviewLab Dev}
+    # URL the backend redirects to after successful Google OAuth2 login.
+    # LOCAL: React dev server | PROD: Vercel frontend URL
+    frontend-redirect-url: ${FRONTEND_REDIRECT_URL:http://localhost:3000}
+
+  # ---------------------------------------------------------------------------
+  # JWT — HS512 signed, stateless session management
+  # ---------------------------------------------------------------------------
+  jwt:
+    # REQUIRED — no default. Generate: openssl rand -base64 64
+    # Application will fail to start if this is not set (validated at startup)
+    secret: ${JWT_SECRET}
+    # Access token: short-lived (24h default) — balance UX vs security
+    access-token-expiry-ms: ${JWT_ACCESS_EXPIRY_MS:86400000}
+    # Refresh token: long-lived (30d default) — used to reissue access tokens
+    refresh-token-expiry-ms: ${JWT_REFRESH_EXPIRY_MS:2592000000}
+    issuer: ${JWT_ISSUER:interview-lab}
+
+  # ---------------------------------------------------------------------------
+  # AI — Gemini V1 (active provider)
+  # Strategy pattern: swap provider via AI_PROVIDER env var without code changes.
+  # AIProvider sealed interface enables exhaustive switch at compile time (Java 25).
+  # Claude and OpenAI providers are parked — plug-in ready in AIProviderFactory.
+  # ---------------------------------------------------------------------------
+  ai:
+    # Active provider name — must match a registered AIProvider implementation
+    provider: ${AI_PROVIDER:ollama}
+    # Default provider stored on new user profiles — injected at service layer, not hardcoded in entity
+    default-provider: ${DEFAULT_AI_PROVIDER:ollama}
+    gemini:
+      # Google AI Studio → API Keys: https://aistudio.google.com/app/apikey
+      api-key: ${GEMINI_API_KEY}
+      # api-url: base path for generateContent calls — model appended at call time
+      api-url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models}
+      model: ${GEMINI_MODEL:gemini-flash-lite-latest}
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
+      # Token budgets declared here — never hardcoded in agent classes
+      interview-agent:
+        max-input-tokens: ${GEMINI_INTERVIEW_MAX_INPUT:8192}
+        max-output-tokens: ${GEMINI_INTERVIEW_MAX_OUTPUT:2048}
+        # Higher temperature: more varied question phrasing
+        temperature: ${GEMINI_INTERVIEW_TEMP:0.7}
+      mentor-agent:
+        max-input-tokens: ${GEMINI_MENTOR_MAX_INPUT:12288}
+        max-output-tokens: ${GEMINI_MENTOR_MAX_OUTPUT:4096}
+        # Lower temperature: precise, consistent feedback and model answers
+        temperature: ${GEMINI_MENTOR_TEMP:0.3}
+      # Sliding window: number of past messages included in agent context
+      context-window-size: ${AI_CONTEXT_WINDOW:10}
+      timeout-ms: ${AI_TIMEOUT_MS:30000}
+    # Call-level option defaults — agent services read these to create AIOptions at runtime
+    options:
+      default-temperature:    ${AI_DEFAULT_TEMPERATURE:0.7}
+      default-max-tokens:     ${AI_DEFAULT_MAX_TOKENS:800}
+      feedback-temperature:   ${AI_FEEDBACK_TEMPERATURE:0.3}
+      feedback-max-tokens:    ${AI_FEEDBACK_MAX_TOKENS:500}
+      questions-temperature:  ${AI_QUESTIONS_TEMPERATURE:0.7}
+      questions-max-tokens:   ${AI_QUESTIONS_MAX_TOKENS:1000}
+    # Claude provider — parked (unpark: explicit owner instruction + cost evaluation)
+    # claude:
+    #   api-key: ${CLAUDE_API_KEY}
+    #   base-url: ${CLAUDE_BASE_URL:https://api.anthropic.com}
+    #   model: ${CLAUDE_MODEL:claude-sonnet-4-6}
+    # OpenAI provider — parked (unpark: explicit owner instruction + cost evaluation)
+    # openai:
+    #   api-key: ${OPENAI_API_KEY}
+    #   base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+    #   model: ${OPENAI_MODEL:gpt-4o}
+
+  # ---------------------------------------------------------------------------
+  # Rate Limiting — per user, sliding window
+  # Enforcement: in-memory (V1 personal) | Redis (V2 public/embedded)
+  # ---------------------------------------------------------------------------
+  rate-limit:
+    # Max interview interactions per user per day
+    daily-limit: ${DAILY_LIMIT:60}
+    # Deployment mode controls rate limit enforcement strictness
+    # personal: relaxed (single user) | public: strict | embedded: per-tenant
+    mode: ${DEPLOYMENT_MODE:personal}
+
+  # ---------------------------------------------------------------------------
+  # CORS
+  # ---------------------------------------------------------------------------
+  cors:
+    # Comma-separated list of allowed origins
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+    allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    allowed-headers: "*"
+    max-age-seconds: ${CORS_MAX_AGE:3600}
+
+  # ---------------------------------------------------------------------------
+  # API Versioning
+  # ---------------------------------------------------------------------------
+  api:
+    base-path: /api/v1
+    version: v1
+
+  # ---------------------------------------------------------------------------
+  # Schema Defaults — injected at service layer, never hardcoded in entities
+  # ---------------------------------------------------------------------------
+  session:
+    # Initial session state on creation — service reads this, entity has no default
+    default-status: ${SESSION_DEFAULT_STATUS:ACTIVE}
+
+  message:
+    # Voice input/output flag for new messages — false until voice module is active
+    default-voice-used: ${MESSAGE_DEFAULT_VOICE_USED:false}
+
+  proficiency:
+    # Starting score and session count for new proficiency records
+    default-score: ${PROFICIENCY_DEFAULT_SCORE:0}
+    default-sessions-count: ${PROFICIENCY_DEFAULT_SESSIONS_COUNT:0}
+
+  feedback:
+    # applied=false on creation — set to true when the feedback is acted on
+    default-applied: ${FEEDBACK_DEFAULT_APPLIED:false}
+
+  # ---------------------------------------------------------------------------
+  # English Proficiency Coach — AI analysis of spoken/written transcripts
+  # ---------------------------------------------------------------------------
+  english:
+    # System prompt for the English coaching agent — set via env var for full multi-line prompts
+    system-prompt: ${ENGLISH_SYSTEM_PROMPT:You are an expert English language coach specialising in professional communication and interview coaching. Analyse the transcript for fluency, grammar, vocabulary, confidence, and filler word usage.}
+    # Lower temperature: precise, consistent language feedback
+    max-tokens: ${ENGLISH_MAX_TOKENS:600}
+    temperature: ${ENGLISH_TEMPERATURE:0.3}
+
+  # ---------------------------------------------------------------------------
+  # Agent — prompt config and sliding-window context size
+  # All prompts configurable via env vars — never hardcoded in agent classes.
+  # ---------------------------------------------------------------------------
+  agent:
+    # Sliding window: number of past messages included in each agent prompt
+    history-window-size: ${AGENT_HISTORY_WINDOW_SIZE:10}
+    # Planned number of questions per interview session — returned in InterviewStartResponse
+    total-questions: ${AGENT_TOTAL_QUESTIONS:10}
+    # Persona and tone for InterviewAgent — set via env var for full multi-line prompts
+    interview-system-prompt: ${AGENT_INTERVIEW_SYSTEM_PROMPT:You are a professional technical interviewer. Ask focused, context-aware questions based on the candidate resume, JD, and proficiency.}
+    # Persona and tone for MentorAgent — set via env var for full multi-line prompts
+    mentor-system-prompt: ${AGENT_MENTOR_SYSTEM_PROMPT:You are an expert interview mentor. Provide constructive, specific, and actionable feedback on candidate answers.}
+    # Instruction appended when asking a follow-up within the same topic
+    follow-up-instruction: ${AGENT_FOLLOW_UP_INSTRUCTION:Ask one sharp follow-up question based on the candidate's answer.}
+    # Instruction appended when the topic is exhausted and a new question should start
+    move-on-instruction: ${AGENT_MOVE_ON_INSTRUCTION:The candidate has answered sufficiently. Ask the next interview question.}
+
+# =============================================================================
+# Springdoc OpenAPI — Swagger UI
+# UI: /swagger-ui.html | Spec: /api-docs | Disable in prod if not needed
+# OpenAPI metadata (title, description, contact) configured in OpenApiConfig.java
+# =============================================================================
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    # Disable Try-it-out in prod to prevent accidental live calls via Swagger
+    try-it-out-enabled: ${SWAGGER_TRY_IT:true}
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+  # Show actuator endpoints in Swagger — useful in dev, disable in prod
+  show-actuator: ${SWAGGER_SHOW_ACTUATOR:false}
+
+# =============================================================================
+# Actuator — Observability endpoints
+# Expose health + info always. Metrics only in non-prod or via authenticated path.
+# =============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS:health,info,metrics}
+      base-path: /actuator
+  endpoint:
+    health:
+      # Show DB, Kafka, disk health details only to authenticated actuator consumers
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
+      show-components: ${HEALTH_SHOW_COMPONENTS:when-authorized}
+  info:
+    env:
+      enabled: true
+
+# =============================================================================
+# Logging — Structured JSON in prod; pattern in dev
+# Correlation ID (correlationId) injected into MDC by CorrelationIdFilter.
+# Logback config: src/main/resources/logback-spring.xml
+# =============================================================================
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    # Application code — DEBUG in dev exposes full request/response cycles
+    com.interviewlab: ${LOG_LEVEL_APP:DEBUG}
+    # Spring Security — INFO exposes auth decision logs; WARN for prod
+    org.springframework.security: ${LOG_LEVEL_SECURITY:WARN}
+    # Hibernate SQL — WARN in dev unless debugging queries
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:WARN}
+    # Kafka client logs — suppress noise in local dev
+    org.apache.kafka: ${LOG_LEVEL_KAFKA:WARN}
+  pattern:
+    # Console pattern includes correlationId from MDC for request tracing
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
+
+# =============================================================================
+# AWS Properties — Plug-in ready (all commented)
+# OSS equivalents active above. Unpark when cost rule triggers cloud migration.
+# Naming follows AWS naming convention: aws.s3, aws.sqs, aws.cloudwatch, aws.rds
+# =============================================================================
+# aws:
+#   region: ${AWS_REGION:ap-south-1}
+#   s3:
+#     bucket: ${AWS_S3_BUCKET}            # OSS active: MinIO bucket (minio.bucket)
+#     endpoint: ${AWS_S3_ENDPOINT}        # OSS active: MinIO URL (minio.endpoint)
+#   sqs:
+#     queue-url: ${AWS_SQS_QUEUE_URL}     # OSS active: Kafka topic (spring.kafka)
+#     dlq-url: ${AWS_SQS_DLQ_URL}
+#   cloudwatch:
+#     log-group: ${AWS_LOG_GROUP:/interview-lab/app}  # OSS active: Loki
+#     log-stream: ${AWS_LOG_STREAM:${spring.application.name}}
+#   rds:
+#     endpoint: ${AWS_RDS_ENDPOINT}       # OSS active: Supabase / local PostgreSQL
+
+# =============================================================================
+# Datadog APM — Plug-in ready (Java agent, not a Spring dependency)
+# Activation: add -javaagent:/path/to/dd-java-agent.jar to JVM startup args.
+# Railway: set JAVA_OPTS = -javaagent:... in environment.
+# Download: https://github.com/DataDog/dd-trace-java/releases
+# Required env vars when active: DD_AGENT_HOST, DD_SERVICE, DD_ENV, DD_VERSION
+# =============================================================================
+# datadog:
+#   agent:
+#     host: ${DD_AGENT_HOST:localhost}
+#     port: ${DD_AGENT_PORT:8126}
+#   service: ${DD_SERVICE:interview-lab}
+#   env: ${DD_ENV:production}
+#   version: ${DD_VERSION:1.0.0}

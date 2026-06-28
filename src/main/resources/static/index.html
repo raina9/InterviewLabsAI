@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Lab</title>
+
+    <!-- Google Fonts: Sora (body) + JetBrains Mono (code/mono) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CDN with custom dark theme config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        base:    '#0B0D10',
+                        surface: '#13161B',
+                        card:    '#1A1D24',
+                        border:  '#2D3139',
+                        accent:  '#F2A60D',
+                        muted:   '#6B7280',
+                    },
+                    fontFamily: {
+                        sans: ['Sora', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #0B0D10; color: #E5E7EB; }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0B0D10; }
+        ::-webkit-scrollbar-thumb { background: #2D3139; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3D4149; }
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.15); }
+        }
+        .recording-pulse { animation: pulse-ring 1.2s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- React 18.2.0 UMD -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+
+    <!-- Babel standalone 7.23.5 — JSX transformation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+    <!-- Auth pre-check: sends dev token, populates window.__user before React mounts -->
+    <script>
+        window.__authReady = (function () {
+            var token = localStorage.getItem('devToken') || 'dev-secret-local';
+            return fetch('/api/v1/auth/me', { headers: { 'X-Dev-Token': token } })
+                .then(function (res) {
+                    if (res.ok) {
+                        return res.json().then(function (data) { window.__user = data; });
+                    }
+                    window.__user = {
+                        email: 'dev@interviewlab.local',
+                        name: 'InterviewLab Dev',
+                        id: '00000000-0000-0000-0000-000000000001'
+                    };
+                })
+                .catch(function () { window.__user = null; });
+        })();
+    </script>
+
+    <!-- apiFetch: wraps fetch with X-Dev-Token + Content-Type for all API calls -->
+    <script>
+        window.apiFetch = (url, options = {}) => fetch(url, {
+            ...options,
+            headers: {
+                'X-Dev-Token': localStorage.getItem('devToken') || 'dev-secret-local',
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            }
+        });
+    </script>
+
+    <!-- VoiceRecorder: plain JS — load sync before Babel processes the JSX files -->
+    <script src="/static/VoiceRecorder.js"></script>
+
+    <!-- Load in dependency order -->
+    <script type="text/babel" src="/static/MentorFeedbackPanel.jsx"></script>
+    <script type="text/babel" src="/static/HistoryScreen.jsx"></script>
+    <script type="text/babel" src="/static/EnglishCoach.jsx"></script>
+    <script type="text/babel" src="/static/IntakeForm.jsx"></script>
+    <script type="text/babel" src="/static/InterviewScreen.jsx"></script>
+    <script type="text/babel" src="/static/App.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Spring Boot Parent — manages all dependency versions and plugin configuration -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.0</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.interviewlab</groupId>
+    <artifactId>interview-lab</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>interview-lab</name>
+    <description>AI-powered interview mentorship engine — Spring Boot monolith</description>
+    <packaging>jar</packaging>
+
+    <properties>
+        <!-- Java 25 LTS — mandatory per project standard. Non-LTS = quality gate failure. -->
+        <java.version>25</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- JJWT — JWT creation, parsing, and validation (not managed by Spring Boot BOM) -->
+        <jjwt.version>0.12.6</jjwt.version>
+
+        <!-- Springdoc OpenAPI — Swagger UI at /swagger-ui.html (verify for Spring Boot 4.x: https://springdoc.org) -->
+        <springdoc.version>2.8.8</springdoc.version>
+
+        <!-- AWS SDK BOM version — plug-in ready. Unpark: traffic demand triggers cost rule → migrate OSS → AWS. -->
+        <!-- <aws.sdk.version>2.26.27</aws.sdk.version> -->
+    </properties>
+
+    <!-- =======================================================================
+         DEPENDENCY MANAGEMENT
+         AWS SDK BOM — commented out; activate when cloud migration triggers.
+         OSS equivalents active above: PostgreSQL (Supabase), Kafka (Upstash/Docker),
+         MinIO (S3), Loki (CloudWatch).
+         ======================================================================= -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring AI BOM — version management for all Spring AI modules (Ollama active, others parked) -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>2.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--
+            AWS SDK for Java v2 BOM — consistent version management across all AWS modules.
+            Unpark trigger: traffic demand exceeds zero-cost tier → cost rule → migrate from OSS to AWS.
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            -->
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+
+        <!-- ===================================================================
+             SPRING BOOT STARTERS
+             =================================================================== -->
+
+        <!-- Web — Spring MVC, embedded Tomcat, Jackson JSON serialisation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Security — authentication filter chain, method-level security -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- OAuth2 Client — Google OAuth2 authorisation code flow -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+        <!-- Data JPA — Hibernate ORM, Spring Data repositories, HikariCP pool -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- Validation — Jakarta Bean Validation 3.x (input constraints, DTO validation) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Actuator — /actuator/health, /actuator/metrics, /actuator/info -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- ===================================================================
+             DATABASE
+             =================================================================== -->
+
+        <!-- PostgreSQL JDBC Driver — connects to Supabase (prod) / Docker (local) -->
+        <!-- AWS equivalent: RDS IAM auth via amazon-rds-iam-auth-sdk (plug-in ready) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Flyway Core — DB migration engine. Schema versioned; never use auto-ddl in prod. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <!-- Flyway PostgreSQL support — required for Flyway 10+ with PostgreSQL dialect -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- ===================================================================
+             AI — Spring AI (OSS active: Ollama local LLM, zero cost)
+             Gemini parked — unpark: cost rule + explicit owner instruction.
+             Claude / OpenAI parked — see parked items in CLAUDE.md.
+             =================================================================== -->
+
+        <!-- Spring AI Ollama — open source, local LLM, zero cost
+             https://docs.spring.io/spring-ai/reference/api/clients/ollama-chat.html -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-ollama</artifactId>
+        </dependency>
+
+        <!--
+        Gemini REST client — parked. GeminiProvider uses Spring RestClient directly (no Spring AI dep).
+        Unpark trigger: cost rule clears or Gemini-specific features are needed.
+        -->
+
+        <!-- ===================================================================
+             MESSAGING — Kafka (OSS active)
+             Prod: Upstash Kafka (managed, serverless, zero-cost tier available)
+             Local: Docker Compose (see docker-compose.yml)
+             V1: EventPublisher (in-process Spring events) is the runtime default.
+                 Kafka consumers activate when KAFKA_BOOTSTRAP_SERVERS points to a real broker.
+             V2 unpark trigger: multi-instance deploy or async scoring demand.
+             AWS equivalent: SQSMessagePublisher → aws-sdk/sqs (plug-in ready)
+             =================================================================== -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- ===================================================================
+             SECURITY — JWT (JJWT 0.12.x)
+             =================================================================== -->
+
+        <!-- JJWT API — JWT builder, parser, claims access (compile scope) -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+
+        <!-- JJWT Implementation — runtime only; do not import in application code -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- JJWT Jackson — JSON serialisation for JWT claims payload -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ===================================================================
+             API DOCUMENTATION
+             =================================================================== -->
+
+        <!-- Springdoc OpenAPI — Swagger UI at /swagger-ui.html, OpenAPI spec at /api-docs -->
+        <!-- Verify latest version for Spring Boot 4.x compatibility: https://springdoc.org/#springdoc-openapi-core-properties -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- ===================================================================
+             UTILITIES
+             =================================================================== -->
+
+        <!-- Lombok — @Slf4j, @Builder, @RequiredArgsConstructor on services/entities -->
+        <!-- Java 25 Records preferred for DTOs and value objects — Lombok for classes only -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ===================================================================
+             TEST
+             =================================================================== -->
+
+        <!-- Spring Boot Test — JUnit 5, Mockito, MockMvc, AssertJ -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Security Test — MockMvc with security context, @WithMockUser -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Kafka Test — EmbeddedKafkaBroker for Kafka integration tests -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot 4.x moved test slices to standalone modules — not in spring-boot-test-autoconfigure -->
+        <!-- @DataJpaTest + TestEntityManager for repository integration tests with H2 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- @WebMvcTest + MockMvc for controller layer tests -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- H2 — in-memory DB for unit/integration test context loading (test scope only) -->
+        <!-- Production integration tests should use TestContainers with real PostgreSQL -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ===================================================================
+             AWS DEPENDENCIES — Plug-in ready (all commented)
+             Unpark trigger: traffic demand → cost rule → migrate from OSS to AWS.
+             =================================================================== -->
+
+        <!--
+        AWS S3 — resume/asset storage. Active OSS equivalent: MinIO (S3StorageService interface).
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        -->
+
+        <!--
+        AWS SQS — async event messaging. Active OSS equivalent: Spring Kafka (SQSMessagePublisher interface).
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sqs</artifactId>
+        </dependency>
+        -->
+
+        <!--
+        AWS CloudWatch Logs — structured log shipping. Active OSS equivalent: Loki + Logback appender.
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>cloudwatchlogs</artifactId>
+        </dependency>
+        -->
+
+        <!--
+        Datadog APM — injected as a Java agent at JVM startup, not as a Spring dependency.
+        Unpark: add -javaagent:/path/to/dd-java-agent.jar to Railway/Docker JVM args.
+        Download: https://github.com/DataDog/dd-trace-java/releases
+        Required env vars when active: DD_AGENT_HOST, DD_SERVICE, DD_ENV, DD_VERSION
+        -->
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven Plugin — fat JAR packaging, layered build for Docker cache efficiency -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Exclude Lombok from the final JAR — annotation processor only, not runtime -->
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                    <!-- Layered image build — improves Docker layer caching in CI/CD pipeline -->
+                    <layers>
+                        <enabled>true</enabled>
+                    </layers>
+                </configuration>
+            </plugin>
+
+            <!--
+            dotenv Maven plugin — parked (Java 25 incompatible)
+            Evaluated options for auto-loading .env before spring-boot:run:
+              io.github.nickvdyck:dotenv-maven-plugin — does not exist on Maven Central
+              io.github.mjourard:env-file-maven-plugin:2.1.0 — uses ProcessEnvironment reflection,
+                blocked by Java 25 module system (java.base/java.lang not open to unnamed modules)
+              me.paulschwarz:springboot4-dotenv — not yet published to Maven Central (v5.1.0 GitHub only)
+            Active solution: start-local.ps1 loads .env into the shell process before mvn spring-boot:run.
+            Shell env vars are inherited by Maven and then by the forked Spring Boot JVM — reliable on all JDKs.
+            Re-evaluate when me.paulschwarz:springboot4-dotenv reaches Maven Central.
+            -->
+
+            <!-- Maven Compiler Plugin — Java 25, Lombok annotation processor wiring -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <!-- Lombok must be declared here for annotation processing to work -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

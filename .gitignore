@@ -1,0 +1,79 @@
+# =============================================================================
+# Interview Lab — .gitignore
+# =============================================================================
+
+# Environment — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+
+# Local dev start script — machine-specific, not for version control
+start-local.ps1
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+.idea_modules/
+
+# STS / Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Docker override (local machine-specific)
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# Spring Boot DevTools restart trigger
+.reloadtrigger
+CLAUDE.md
+
+# Session notes and debug logs — internal only
+session-notes/
+
+# Claude Code local project config — never publish
+.claude/

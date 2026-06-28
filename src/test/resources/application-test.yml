@@ -1,0 +1,96 @@
+# =============================================================================
+# Test Profile — application-test.yml
+# Activated by @ActiveProfiles("test") in test classes.
+# Overrides application.yml for isolated, infrastructure-free unit tests.
+# Production integration tests use TestContainers with real PostgreSQL.
+# =============================================================================
+
+spring:
+  # H2 in-memory database — PostgreSQL compatibility mode for SQL syntax alignment
+  datasource:
+    url: jdbc:h2:mem:interviewlab_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        # Override the PostgreSQLDialect from application.yml — H2 tests need H2-compatible DDL
+        dialect: org.hibernate.dialect.H2Dialect
+    show-sql: false
+  # Flyway disabled for unit tests — H2 + ddl-auto=create-drop manages schema
+  flyway:
+    enabled: false
+  # Kafka auto-connect disabled — use @EmbeddedKafka in Kafka-specific tests
+  kafka:
+    bootstrap-servers: localhost:9092
+  # OAuth2 stub values — prevents startup failure on missing env vars
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+
+app:
+  jwt:
+    # Test secret — 64 bytes base64, safe only for tests
+    secret: dGVzdC1zZWNyZXQtZm9yLXVuaXQtdGVzdHMtb25seS1uZXZlci11c2UtaW4tcHJvZHVjdGlvbi10aGlzLWlzLWp1c3QtZm9yLXRlc3Rpbmc=
+    access-token-expiry-ms: 3600000
+    refresh-token-expiry-ms: 86400000
+    issuer: interview-lab-test
+  ai:
+    provider: mock
+    default-provider: gemini
+    gemini:
+      api-key: test-gemini-key
+      api-url: http://localhost:8089/v1beta/models
+      base-url: http://localhost:8089
+      model: gemini-test
+    options:
+      default-temperature: 0.7
+      default-max-tokens: 800
+      feedback-temperature: 0.3
+      feedback-max-tokens: 500
+      questions-temperature: 0.7
+      questions-max-tokens: 1000
+      interview-agent:
+        max-input-tokens: 1024
+        max-output-tokens: 512
+        temperature: 0.7
+      mentor-agent:
+        max-input-tokens: 1024
+        max-output-tokens: 512
+        temperature: 0.3
+      context-window-size: 5
+      timeout-ms: 5000
+  rate-limit:
+    daily-limit: 10000
+    mode: personal
+  cors:
+    allowed-origins: http://localhost:3000
+  session:
+    default-status: ACTIVE
+  message:
+    default-voice-used: false
+  proficiency:
+    default-score: 0.0
+    default-sessions-count: 0
+  feedback:
+    default-applied: false
+  agent:
+    history-window-size: 5
+    total-questions: 5
+    interview-system-prompt: Test interviewer.
+    mentor-system-prompt: Test mentor.
+    follow-up-instruction: Follow up.
+    move-on-instruction: Move on.
+
+logging:
+  level:
+    root: WARN
+    com.interviewlab: INFO
