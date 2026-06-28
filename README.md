@@ -161,16 +161,6 @@ See [.env.example](.env.example) for the full reference with descriptions.
 - `docs/` — HLD, LLD, System Design, API Contracts, DB Schema (added per checkpoint)
 - `session-notes/` — Session-by-session development log
 
-## Parked Items (V2+)
-
-| Item | Trigger to Unpark |
-|------|-------------------|
-| Kafka (V2 messaging) | Multi-instance Railway deploy or async scoring demand |
-| Claude / OpenAI providers | Explicit owner instruction + cost evaluation |
-| Redis rate limiting | V2 public deployment with multi-instance |
-| TestContainers PostgreSQL | Integration test phase |
-| AWS migration | Traffic demand exceeds zero-cost tier |
-
 ## Contributing
 
 Contributions welcome — open a PR or issue.
