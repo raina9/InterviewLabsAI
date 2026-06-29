@@ -165,6 +165,20 @@ See [.env.example](.env.example) for the full reference with descriptions.
 
 Contributions welcome — open a PR or issue.
 
+## Setting Up Google OAuth (Production Mode)
+
+By default the app starts without Google OAuth (dev mode — no login required). To switch to production OAuth:
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials
+2. Create an **OAuth 2.0 Client ID** (Web application type)
+3. Add an Authorised Redirect URI: `https://<your-backend-url>/login/oauth2/code/google`
+4. Copy the Client ID and Client Secret into your `.env`:
+   ```
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   ```
+5. Restart the app — it auto-detects the credentials and switches to OAuth mode. No `AUTH_MODE` flag needed.
+
 ## Author
 
 Shivendra Mohan Raina

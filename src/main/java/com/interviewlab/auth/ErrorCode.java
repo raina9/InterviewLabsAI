@@ -25,7 +25,12 @@ public enum ErrorCode {
     RATE_LIMIT_EXCEEDED("Request rate limit exceeded. Please wait before retrying."),
     AI_PROVIDER_NOT_IMPLEMENTED("This AI provider is not yet available."),
 
-    ENGLISH_ANALYSIS_FAILED("English proficiency analysis failed. Please retry your request.");
+    ENGLISH_ANALYSIS_FAILED("English proficiency analysis failed. Please retry your request."),
+
+    ASSESSMENT_PROFILE_NOT_FOUND("User profile not found. Complete your profile with tech stack before starting assessment."),
+    ASSESSMENT_NOT_FOUND("No assessment data found. Complete a self-assessment first."),
+
+    CURRICULUM_GENERATION_FAILED("Failed to generate curriculum. Please retry your request.");
 
     private final String defaultMessage;
 

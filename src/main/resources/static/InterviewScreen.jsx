@@ -22,6 +22,21 @@ function speakSequence(texts, onAllDone) {
     speakNext(0);
 }
 
+function nudgeStyle(pattern) {
+    if (pattern === 'IMPROVING' || pattern === 'SOLID')
+        return 'bg-green-950/60 border-green-800 text-green-300';
+    if (pattern === 'NERVOUS')
+        return 'bg-amber-950/60 border-amber-800 text-amber-300';
+    return 'bg-red-950/60 border-red-800 text-red-300';
+}
+
+function nudgeIcon(pattern) {
+    if (pattern === 'IMPROVING') return '↑';
+    if (pattern === 'SOLID')     return '✓';
+    if (pattern === 'NERVOUS')   return '⚠';
+    return '↗';
+}
+
 function MentorBubble({ feedback }) {
     const [showRefined, setShowRefined] = React.useState(false);
     const [showModel,   setShowModel]   = React.useState(false);
@@ -95,6 +110,7 @@ function InterviewScreen({ sessionId, voiceEnabled, firstQuestion, totalQuestion
         firstQuestion ? [{ role: 'INTERVIEWER', content: firstQuestion }] : []
     );
     const [latestFeedback, setLatestFeedback] = React.useState(null);
+    const [psychologyNudge, setPsychologyNudge] = React.useState(null);
     const [inputText, setInputText]           = React.useState('');
     const [isLoading, setIsLoading]           = React.useState(false);
     const [voiceState, setVoiceState]         = React.useState('idle'); // idle | recording
@@ -171,6 +187,10 @@ function InterviewScreen({ sessionId, voiceEnabled, firstQuestion, totalQuestion
             if (data.mentorFeedback) {
                 setLatestFeedback(data.mentorFeedback);
                 setMessages(prev => [...prev, { role: 'MENTOR', feedback: data.mentorFeedback }]);
+            }
+
+            if (data.psychologyNudge) {
+                setPsychologyNudge(data.psychologyNudge);
             }
 
             if (data.sessionComplete) {
@@ -324,6 +344,22 @@ function InterviewScreen({ sessionId, voiceEnabled, firstQuestion, totalQuestion
                 {error && (
                     <div className="px-5 py-2 bg-red-950/60 border-t border-red-800 text-red-400 text-xs">
                         {error}
+                    </div>
+                )}
+
+                {/* Psychology nudge banner — shown after every 3rd scored answer */}
+                {psychologyNudge && !sessionComplete && (
+                    <div className={`px-5 py-2.5 border-t flex items-start gap-2.5 text-xs ${nudgeStyle(psychologyNudge.pattern)}`}>
+                        <span className="flex-shrink-0 font-bold text-sm">{nudgeIcon(psychologyNudge.pattern)}</span>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-semibold leading-snug">{psychologyNudge.nudge}</p>
+                            <p className="mt-0.5 opacity-80 leading-snug">{psychologyNudge.actionableAdvice}</p>
+                        </div>
+                        <button
+                            onClick={() => setPsychologyNudge(null)}
+                            className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity ml-2">
+                            ✕
+                        </button>
                     </div>
                 )}
 

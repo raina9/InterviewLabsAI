@@ -9,6 +9,8 @@ import com.interviewlab.auth.ErrorCode;
 import com.interviewlab.event.EventPublisher;
 import com.interviewlab.feedback.AnswerFeedback;
 import com.interviewlab.feedback.AnswerFeedbackRepository;
+import com.interviewlab.psychology.PsychologyInsight;
+import com.interviewlab.psychology.PsychologyService;
 import com.interviewlab.session.Message;
 import com.interviewlab.session.MessageRole;
 import com.interviewlab.session.MessageService;
@@ -30,13 +32,14 @@ import java.util.UUID;
 @Service
 public class InterviewService {
 
-    private final SessionRepository       sessionRepository;
-    private final MessageService          messageService;
+    private final SessionRepository        sessionRepository;
+    private final MessageService           messageService;
     private final AnswerFeedbackRepository answerFeedbackRepository;
-    private final InterviewAgent          interviewAgent;
-    private final MentorAgent             mentorAgent;
-    private final EventPublisher          eventPublisher;
-    private final AgentProperties         agentProperties;
+    private final InterviewAgent           interviewAgent;
+    private final MentorAgent              mentorAgent;
+    private final EventPublisher           eventPublisher;
+    private final AgentProperties          agentProperties;
+    private final PsychologyService        psychologyService;
 
     @Transactional
     public InterviewStartResponse startInterview(UUID userId, UUID sessionId) {
@@ -92,10 +95,14 @@ public class InterviewService {
         eventPublisher.publishAnswerScored(sessionId, turnResult.candidateMessageId());
         log.info("Interview turn completed: sessionId={} score={}", sessionId, mentorFeedback.score());
 
+        // Psychology nudge — surfaced every 3rd answer in the session.
+        PsychologyInsight nudge = computeNudge(sessionId);
+
         return new InterviewTurnResponse(
             turnResult.agentResponse(),
             turnResult.shouldMoveToNextQuestion(),
-            MentorFeedbackResponse.from(mentorFeedback)
+            MentorFeedbackResponse.from(mentorFeedback),
+            nudge
         );
     }
 
@@ -106,6 +113,24 @@ public class InterviewService {
         return answerFeedbackRepository.findBySessionId(sessionId).stream()
             .map(MentorFeedbackResponse::from)
             .toList();
+    }
+
+    private PsychologyInsight computeNudge(UUID sessionId) {
+        List<AnswerFeedback> sessionFeedbacks = answerFeedbackRepository.findBySessionId(sessionId);
+        if (sessionFeedbacks.isEmpty() || sessionFeedbacks.size() % 3 != 0) {
+            return null;
+        }
+        List<MentorFeedback> mentorFeedbacks = sessionFeedbacks.stream()
+            .map(af -> new MentorFeedback(
+                af.getFeedbackGood(),
+                af.getFeedbackImprove(),
+                af.getRefinedAnswer(),
+                af.getModelAnswer(),
+                af.getPsychologyNote(),
+                af.getScore()
+            ))
+            .toList();
+        return psychologyService.detectPattern(mentorFeedbacks);
     }
 
     private Session findSessionOrThrow(UUID sessionId) {

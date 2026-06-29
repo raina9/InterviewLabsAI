@@ -1,7 +1,9 @@
 package com.interviewlab.config;
 
+import com.interviewlab.assessment.AssessmentException;
 import com.interviewlab.auth.AuthException;
 import com.interviewlab.ai.AIProviderException;
+import com.interviewlab.curriculum.CurriculumException;
 import com.interviewlab.interview.InterviewException;
 import com.interviewlab.profile.ProfileException;
 import com.interviewlab.session.SessionException;
@@ -58,6 +60,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ProfileException.class)
     public ResponseEntity<ApiError> handleProfileException(ProfileException ex) {
         log.warn("Profile error: code={} message={}", ex.errorCode(), ex.getMessage());
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(AssessmentException.class)
+    public ResponseEntity<ApiError> handleAssessmentException(AssessmentException ex) {
+        log.warn("Assessment error: code={} message={}", ex.errorCode(), ex.getMessage());
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(CurriculumException.class)
+    public ResponseEntity<ApiError> handleCurriculumException(CurriculumException ex) {
+        log.warn("Curriculum error: code={} message={}", ex.errorCode(), ex.getMessage());
         return ResponseEntity
                 .status(ex.status())
                 .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
