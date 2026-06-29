@@ -85,8 +85,8 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
+            client-id: ${GOOGLE_CLIENT_ID:not-configured}
+            client-secret: ${GOOGLE_CLIENT_SECRET:not-configured}
             scope:
               - openid
               - email
@@ -178,6 +178,8 @@ app:
   auth:
     # dev | oauth — controls which auth path is active (see SecurityConfig)
     mode: ${AUTH_MODE:dev}
+    # true: auto-switch to oauth when GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET are set, regardless of AUTH_MODE
+    auto-detect: ${AUTH_AUTO_DETECT:true}
     # Dev token compared against X-Dev-Token request header in dev mode
     dev-token: ${DEV_TOKEN:dev-secret}
     # Fixed principal injected into SecurityContext in dev mode

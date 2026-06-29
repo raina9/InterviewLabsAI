@@ -1,9 +1,6 @@
 const React = window.React;
 
 function MentorFeedbackPanel({ feedback }) {
-    const [showRefined, setShowRefined] = React.useState(false);
-    const [showModel, setShowModel] = React.useState(false);
-
     if (!feedback) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12 text-muted">
@@ -22,16 +19,14 @@ function MentorFeedbackPanel({ feedback }) {
         : 'text-red-400 bg-red-900/30 border-red-800';
 
     return (
-        <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto">
-            {/* Score badge */}
+        <div className="flex flex-col gap-3 p-4 h-full overflow-y-auto">
             <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mentor Feedback</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mentor</span>
                 <span className={`px-2.5 py-1 rounded-lg border font-mono font-bold text-sm ${scoreColor}`}>
                     {score}/10
                 </span>
             </div>
 
-            {/* feedbackGood */}
             {feedback.feedbackGood && (
                 <div className="bg-green-900/20 border border-green-800/50 rounded-xl p-3">
                     <div className="flex gap-2 items-start">
@@ -41,7 +36,6 @@ function MentorFeedbackPanel({ feedback }) {
                 </div>
             )}
 
-            {/* feedbackImprove */}
             {feedback.feedbackImprove && (
                 <div className="bg-amber-900/20 border border-amber-800/50 rounded-xl p-3">
                     <div className="flex gap-2 items-start">
@@ -51,43 +45,8 @@ function MentorFeedbackPanel({ feedback }) {
                 </div>
             )}
 
-            {/* Psychology note */}
             {feedback.psychologyNote && (
                 <p className="italic text-xs text-muted px-1 leading-relaxed">{feedback.psychologyNote}</p>
-            )}
-
-            {/* Refined answer (collapsible) */}
-            {feedback.refinedAnswer && (
-                <div className="border border-border rounded-xl overflow-hidden">
-                    <button
-                        onClick={() => setShowRefined(!showRefined)}
-                        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-medium text-gray-400 hover:text-gray-200 hover:bg-surface transition-colors">
-                        <span>Refined Answer</span>
-                        <span className="font-mono">{showRefined ? '−' : '+'}</span>
-                    </button>
-                    {showRefined && (
-                        <div className="px-3 pb-3 pt-1 text-sm text-gray-300 font-mono leading-relaxed whitespace-pre-wrap border-t border-border">
-                            {feedback.refinedAnswer}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Model answer (collapsible) */}
-            {feedback.modelAnswer && (
-                <div className="border border-border rounded-xl overflow-hidden">
-                    <button
-                        onClick={() => setShowModel(!showModel)}
-                        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-medium text-gray-400 hover:text-gray-200 hover:bg-surface transition-colors">
-                        <span>Model Answer</span>
-                        <span className="font-mono">{showModel ? '−' : '+'}</span>
-                    </button>
-                    {showModel && (
-                        <div className="px-3 pb-3 pt-1 text-sm text-gray-300 font-mono leading-relaxed whitespace-pre-wrap border-t border-border">
-                            {feedback.modelAnswer}
-                        </div>
-                    )}
-                </div>
             )}
         </div>
     );

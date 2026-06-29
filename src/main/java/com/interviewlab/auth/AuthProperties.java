@@ -12,10 +12,11 @@ import java.util.UUID;
  */
 @ConfigurationProperties(prefix = "app.auth")
 public record AuthProperties(
-    String mode,
-    String devToken,
-    UUID   devUserId,
-    String devUserEmail,
-    String devUserName,
-    String frontendRedirectUrl
+    String  mode,
+    boolean autoDetect,
+    String  devToken,
+    UUID    devUserId,
+    String  devUserEmail,
+    String  devUserName,
+    String  frontendRedirectUrl
 ) {}

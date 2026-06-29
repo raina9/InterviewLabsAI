@@ -7,6 +7,8 @@ import com.interviewlab.auth.JwtAuthFilter;
 import com.interviewlab.auth.JwtService;
 import com.interviewlab.auth.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -17,15 +19,24 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final String NOT_CONFIGURED = "not-configured";
+
     private final OAuth2SuccessHandler oauth2SuccessHandler;
     private final JwtService           jwtService;
     private final AuthProperties       authProperties;
     private final ObjectMapper         objectMapper;
+
+    @Value("${GOOGLE_CLIENT_ID:not-configured}")
+    private String googleClientId;
+
+    @Value("${GOOGLE_CLIENT_SECRET:not-configured}")
+    private String googleClientSecret;
 
     @Bean
     public JwtAuthFilter jwtAuthFilter() {
@@ -77,7 +88,14 @@ public class SecurityConfig {
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             );
 
-        if ("oauth".equalsIgnoreCase(authProperties.mode())) {
+        boolean useOAuth = "oauth".equalsIgnoreCase(authProperties.mode())
+            || (authProperties.autoDetect() && hasGoogleCredentials());
+
+        if (useOAuth) {
+            String reason = "oauth".equalsIgnoreCase(authProperties.mode())
+                ? "explicit AUTH_MODE=oauth"
+                : "auto-detected Google credentials";
+            log.info("Auth mode: oauth ({})", reason);
             // OAuth mode: Google OAuth2 login active, JWT cookie validates subsequent requests
             http
                 .oauth2Login(oauth2 -> oauth2
@@ -85,10 +103,20 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
         } else {
+            log.info("Auth mode: dev (no Google credentials — set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET to enable OAuth)");
             // Dev mode: X-Dev-Token header authenticates all requests — no OAuth2 login endpoint
             http.addFilterBefore(devTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         }
 
         return http.build();
+    }
+
+    private boolean hasGoogleCredentials() {
+        return googleClientId != null
+            && !NOT_CONFIGURED.equals(googleClientId)
+            && !googleClientId.isBlank()
+            && googleClientSecret != null
+            && !NOT_CONFIGURED.equals(googleClientSecret)
+            && !googleClientSecret.isBlank();
     }
 }
