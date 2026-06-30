@@ -303,6 +303,26 @@ app:
     default-applied: ${FEEDBACK_DEFAULT_APPLIED:false}
 
   # ---------------------------------------------------------------------------
+  # Messaging — Swappable Backend Pattern
+  # V1 (default): SyncEventPublisher — in-process, zero infra
+  # V2 (Kafka):   KafkaEventPublisher — set MESSAGING_MODE=kafka when unpacking
+  # Switch via MESSAGING_MODE env var — no code change required.
+  # ---------------------------------------------------------------------------
+  messaging:
+    mode: ${MESSAGING_MODE:sync}
+
+  # ---------------------------------------------------------------------------
+  # Storage — Swappable Backend Pattern
+  # Local (default): LocalFileStorageService — filesystem, zero infra
+  # Cloud (S3):      S3StorageService — set STORAGE_MODE=s3 when unpacking
+  # Switch via STORAGE_MODE env var — no code change required.
+  # See pom.xml for AWS S3 SDK activation and storage/package-info.java for steps.
+  # ---------------------------------------------------------------------------
+  storage:
+    mode: ${STORAGE_MODE:local}
+    local-path: ${STORAGE_LOCAL_PATH:./storage}
+
+  # ---------------------------------------------------------------------------
   # Judge0 — Code execution sandbox (open source, self-hostable)
   # OSS: self-host at https://github.com/judge0/judge0
   # Managed: RapidAPI hosted Judge0 CE (paid, free tier limited)
@@ -339,6 +359,10 @@ app:
     follow-up-instruction: ${AGENT_FOLLOW_UP_INSTRUCTION:Ask one sharp follow-up question based on the candidate's answer.}
     # Instruction appended when the topic is exhausted and a new question should start
     move-on-instruction: ${AGENT_MOVE_ON_INSTRUCTION:The candidate has answered sufficiently. Ask the next interview question.}
+    # Orchestration mode — Swappable Backend Pattern
+    # local (default): AgentToolChain runs in-process, zero infra
+    # cloud: future CloudAgentOrchestrator — set AGENT_ORCHESTRATION_MODE=cloud when unpacking
+    orchestration-mode: ${AGENT_ORCHESTRATION_MODE:local}
 
 # =============================================================================
 # Springdoc OpenAPI — Swagger UI

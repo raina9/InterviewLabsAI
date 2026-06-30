@@ -46,6 +46,10 @@ AgentTools chain (Chain of Responsibility):
   ResumeContextTool → SessionHistoryTool → ProficiencyTool → QnAReferenceTool → UserPromptTool
 ```
 
+## Architecture: Swappable Backends
+
+Every external dependency (AI provider, storage, messaging, agent orchestration) runs on free or local infrastructure by default, and switches to a paid or cloud provider via a single environment variable — no code changes, no recompile, no redeployment of a different binary required. This is the same conditional bean mechanism Spring Boot uses internally for its own auto-configuration. The paid implementation code lives in the repository in a conditional, non-instantiated state; enabling it is an ops action, not a dev action.
+
 ## How to Run Locally
 
 ### Prerequisites

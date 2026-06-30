@@ -270,7 +270,14 @@
              =================================================================== -->
 
         <!--
-        AWS S3 — resume/asset storage. Active OSS equivalent: MinIO (S3StorageService interface).
+        AWS S3 — object storage via StorageService interface (aws naming: S3StorageService).
+        Active OSS equivalent: LocalFileStorageService (storage/LocalFileStorageService.java).
+        Activation steps:
+          1. Uncomment this dependency and the aws.sdk.version property + AWS SDK BOM above.
+          2. Implement S3StorageService (see storage/StorageService.java for the contract).
+          3. Annotate with @Service @ConditionalOnProperty(name="app.storage.mode", havingValue="s3").
+          4. Set STORAGE_MODE=s3, AWS_S3_BUCKET, AWS_REGION, and AWS credentials in environment.
+        MinIO is the local/OSS S3-compatible alternative (same SDK, different endpoint).
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>

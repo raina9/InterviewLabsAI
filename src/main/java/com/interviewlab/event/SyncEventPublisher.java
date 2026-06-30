@@ -1,16 +1,18 @@
 package com.interviewlab.event;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
 /**
- * V1 in-process event publisher — logs events only.
- * Swap to KafkaEventPublisher in V2 without changing any caller (Strategy via interface).
+ * V1 in-process event publisher — logs events only. Active by default (MESSAGING_MODE=sync).
+ * Swap to KafkaEventPublisher by setting MESSAGING_MODE=kafka — no code change required.
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "app.messaging.mode", havingValue = "sync", matchIfMissing = true)
 public class SyncEventPublisher implements EventPublisher {
 
     @Override
