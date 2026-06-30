@@ -207,4 +207,42 @@ class TopicDrillServiceTest {
             .satisfies(ex -> assertThat(((DrillException) ex).errorCode())
                 .isEqualTo(ErrorCode.DRILL_ALREADY_COMPLETED));
     }
+
+    // -------------------------------------------------------------------------
+    // Scenario 8: RAPID start — AI returns malformed JSON → DRILL_GENERATION_FAILED
+    // -------------------------------------------------------------------------
+
+    @Test
+    void startDrill_rapidMalformedJson_throwsGenerationFailed() {
+        stubAiProvider();
+        when(aiProvider.generateJson(anyString(), any(AIOptions.class))).thenReturn("not json at all");
+
+        assertThatThrownBy(() -> drillService.startDrill(new DrillRequest("Java", DrillMode.RAPID)))
+            .isInstanceOf(DrillException.class)
+            .satisfies(ex -> assertThat(((DrillException) ex).errorCode())
+                .isEqualTo(ErrorCode.DRILL_GENERATION_FAILED));
+    }
+
+    // -------------------------------------------------------------------------
+    // Scenario 9: evaluateAnswer — AI returns malformed score → DRILL_GENERATION_FAILED
+    // -------------------------------------------------------------------------
+
+    @Test
+    void nextQuestion_malformedScoreJson_throwsGenerationFailed() {
+        stubAiProvider();
+        when(aiProvider.generateJson(anyString(), any(AIOptions.class)))
+            .thenReturn(RAPID_QUESTIONS_JSON)      // startDrill: generates questions
+            .thenReturn("not valid json score");   // nextQuestion: evaluate answer — malformed
+        when(aiProvider.generate(anyString(), any(AIOptions.class)))
+            .thenReturn("feedback");
+
+        DrillSession start = drillService.startDrill(new DrillRequest("Java", DrillMode.RAPID));
+
+        assertThatThrownBy(() -> drillService.nextQuestion(
+            start.sessionId(), new DrillAnswerRequest("some answer")
+        ))
+            .isInstanceOf(DrillException.class)
+            .satisfies(ex -> assertThat(((DrillException) ex).errorCode())
+                .isEqualTo(ErrorCode.DRILL_GENERATION_FAILED));
+    }
 }

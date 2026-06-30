@@ -34,6 +34,7 @@ public enum ErrorCode {
 
     QUIZ_SESSION_NOT_FOUND("Quiz session not found. It may have expired or not been started."),
     QUIZ_ALREADY_COMPLETED("This quiz session is already complete. Retrieve the result instead."),
+    QUIZ_NOT_YET_COMPLETE("Quiz session is not yet complete. Answer all questions before retrieving the result."),
     QUIZ_GENERATION_FAILED("Failed to generate quiz questions. Please retry your request."),
 
     CODE_CHALLENGE_NOT_FOUND("Code challenge not found. Generate a new challenge."),
@@ -41,7 +42,8 @@ public enum ErrorCode {
     CODE_EVALUATION_FAILED("Failed to evaluate code submission. Please retry your request."),
 
     DRILL_SESSION_NOT_FOUND("Drill session not found. It may have expired or not been started."),
-    DRILL_ALREADY_COMPLETED("This drill session is already complete. Retrieve the summary instead.");
+    DRILL_ALREADY_COMPLETED("This drill session is already complete. Retrieve the summary instead."),
+    DRILL_GENERATION_FAILED("Failed to generate drill content. Please retry your request.");
 
     private final String defaultMessage;
 

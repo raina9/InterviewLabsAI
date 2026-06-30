@@ -141,10 +141,20 @@ public class DrillService {
         try {
             String json = extractJson(raw);
             Map<String, List<String>> parsed = objectMapper.readValue(json, new TypeReference<>() {});
-            return parsed.getOrDefault("questions", List.of());
+            List<String> questions = parsed.getOrDefault("questions", List.of());
+            if (questions.isEmpty()) {
+                throw new IllegalStateException("AI returned empty questions list");
+            }
+            return questions;
+        } catch (DrillException ex) {
+            throw ex;
         } catch (Exception e) {
-            log.warn("Failed to parse rapid questions, using fallback: {}", e.getMessage());
-            return List.of("Explain " + topic + " in your own words.");
+            log.error("Failed to parse rapid drill questions for topic={}: {}", topic, e.getMessage());
+            throw new DrillException(
+                ErrorCode.DRILL_GENERATION_FAILED,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Failed to generate drill questions for topic \"" + topic + "\". Please retry your request."
+            );
         }
     }
 
@@ -178,10 +188,19 @@ public class DrillService {
             @SuppressWarnings("unchecked")
             Map<String, Object> parsed = objectMapper.readValue(json, Map.class);
             Object scoreVal = parsed.get("score");
-            return scoreVal instanceof Number n ? n.intValue() : 5;
+            if (!(scoreVal instanceof Number)) {
+                throw new IllegalStateException("AI returned non-numeric score: " + scoreVal);
+            }
+            return ((Number) scoreVal).intValue();
+        } catch (DrillException ex) {
+            throw ex;
         } catch (Exception e) {
-            log.warn("Failed to parse drill score, defaulting to 5: {}", e.getMessage());
-            return 5;
+            log.error("Failed to parse drill evaluation score for topic={}: {}", topic, e.getMessage());
+            throw new DrillException(
+                ErrorCode.DRILL_GENERATION_FAILED,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Failed to evaluate your answer. Please retry your request."
+            );
         }
     }
 
@@ -198,7 +217,13 @@ public class DrillService {
     private String extractJson(String raw) {
         int start = raw.indexOf('{');
         int end   = raw.lastIndexOf('}');
-        if (start < 0 || end < 0 || end < start) return raw;
+        if (start < 0 || end < 0 || end < start) {
+            throw new DrillException(
+                ErrorCode.DRILL_GENERATION_FAILED,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Failed to generate drill content. Please retry your request."
+            );
+        }
         return raw.substring(start, end + 1);
     }
 }

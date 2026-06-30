@@ -74,9 +74,9 @@ public class QuizService {
         QuizSessionState state = findSessionOrThrow(sessionId);
         if (!state.isComplete()) {
             throw new QuizException(
-                ErrorCode.QUIZ_SESSION_NOT_FOUND,
+                ErrorCode.QUIZ_NOT_YET_COMPLETE,
                 HttpStatus.CONFLICT,
-                "Quiz session " + sessionId + " is not yet complete."
+                "Quiz session " + sessionId + " is not yet complete. Answer all questions before retrieving the result."
             );
         }
         int total   = state.getQuestions().size();

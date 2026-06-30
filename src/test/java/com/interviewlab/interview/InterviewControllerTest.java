@@ -100,7 +100,7 @@ class InterviewControllerTest {
 
     @Test
     void respond_validAnswer_returns200WithFeedback() throws Exception {
-        InterviewTurnResponse turnResponse = new InterviewTurnResponse("Next question?", false, sampleFeedback());
+        InterviewTurnResponse turnResponse = new InterviewTurnResponse("Next question?", false, sampleFeedback(), null);
         when(interviewService.respond(eq(USER_ID), eq(SESSION_ID), eq("My detailed answer"), eq(false)))
             .thenReturn(turnResponse);
 
