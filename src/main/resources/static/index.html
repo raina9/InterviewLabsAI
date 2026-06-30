@@ -57,6 +57,9 @@
     <!-- Babel standalone 7.23.5 — JSX transformation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
+    <!-- Monaco Editor AMD loader — loaded sync so CodeEditor can require(['vs/editor/editor.main']) on demand -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+
     <!-- Auth pre-check: sends dev token, populates window.__user before React mounts -->
     <script>
         window.__authReady = (function () {
@@ -97,6 +100,9 @@
     <script type="text/babel" src="/static/EnglishCoach.jsx"></script>
     <script type="text/babel" src="/static/IntakeForm.jsx"></script>
     <script type="text/babel" src="/static/InterviewScreen.jsx"></script>
+    <script type="text/babel" src="/static/ProfileScreen.jsx"></script>
+    <script type="text/babel" src="/static/QuizScreen.jsx"></script>
+    <script type="text/babel" src="/static/CodeEditor.jsx"></script>
     <script type="text/babel" src="/static/App.jsx"></script>
 </body>
 </html>

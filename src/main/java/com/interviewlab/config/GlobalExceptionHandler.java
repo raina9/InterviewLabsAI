@@ -3,7 +3,10 @@ package com.interviewlab.config;
 import com.interviewlab.assessment.AssessmentException;
 import com.interviewlab.auth.AuthException;
 import com.interviewlab.ai.AIProviderException;
+import com.interviewlab.code.CodeChallengeException;
 import com.interviewlab.curriculum.CurriculumException;
+import com.interviewlab.drill.DrillException;
+import com.interviewlab.quiz.QuizException;
 import com.interviewlab.interview.InterviewException;
 import com.interviewlab.profile.ProfileException;
 import com.interviewlab.session.SessionException;
@@ -76,6 +79,30 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CurriculumException.class)
     public ResponseEntity<ApiError> handleCurriculumException(CurriculumException ex) {
         log.warn("Curriculum error: code={} message={}", ex.errorCode(), ex.getMessage());
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(QuizException.class)
+    public ResponseEntity<ApiError> handleQuizException(QuizException ex) {
+        log.warn("Quiz error: code={} message={}", ex.errorCode(), ex.getMessage());
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(CodeChallengeException.class)
+    public ResponseEntity<ApiError> handleCodeChallengeException(CodeChallengeException ex) {
+        log.warn("Code challenge error: code={} message={}", ex.errorCode(), ex.getMessage());
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(DrillException.class)
+    public ResponseEntity<ApiError> handleDrillException(DrillException ex) {
+        log.warn("Drill error: code={} message={}", ex.errorCode(), ex.getMessage());
         return ResponseEntity
                 .status(ex.status())
                 .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));

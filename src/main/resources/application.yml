@@ -303,6 +303,16 @@ app:
     default-applied: ${FEEDBACK_DEFAULT_APPLIED:false}
 
   # ---------------------------------------------------------------------------
+  # Judge0 — Code execution sandbox (open source, self-hostable)
+  # OSS: self-host at https://github.com/judge0/judge0
+  # Managed: RapidAPI hosted Judge0 CE (paid, free tier limited)
+  # Leave url blank to disable execution — AI code review used as fallback.
+  # ---------------------------------------------------------------------------
+  judge0:
+    url: ${JUDGE0_URL:}
+    api-key: ${JUDGE0_API_KEY:}
+
+  # ---------------------------------------------------------------------------
   # English Proficiency Coach — AI analysis of spoken/written transcripts
   # ---------------------------------------------------------------------------
   english:

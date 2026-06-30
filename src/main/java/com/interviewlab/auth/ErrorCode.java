@@ -30,7 +30,18 @@ public enum ErrorCode {
     ASSESSMENT_PROFILE_NOT_FOUND("User profile not found. Complete your profile with tech stack before starting assessment."),
     ASSESSMENT_NOT_FOUND("No assessment data found. Complete a self-assessment first."),
 
-    CURRICULUM_GENERATION_FAILED("Failed to generate curriculum. Please retry your request.");
+    CURRICULUM_GENERATION_FAILED("Failed to generate curriculum. Please retry your request."),
+
+    QUIZ_SESSION_NOT_FOUND("Quiz session not found. It may have expired or not been started."),
+    QUIZ_ALREADY_COMPLETED("This quiz session is already complete. Retrieve the result instead."),
+    QUIZ_GENERATION_FAILED("Failed to generate quiz questions. Please retry your request."),
+
+    CODE_CHALLENGE_NOT_FOUND("Code challenge not found. Generate a new challenge."),
+    CODE_CHALLENGE_GENERATION_FAILED("Failed to generate code challenge. Please retry your request."),
+    CODE_EVALUATION_FAILED("Failed to evaluate code submission. Please retry your request."),
+
+    DRILL_SESSION_NOT_FOUND("Drill session not found. It may have expired or not been started."),
+    DRILL_ALREADY_COMPLETED("This drill session is already complete. Retrieve the summary instead.");
 
     private final String defaultMessage;
 

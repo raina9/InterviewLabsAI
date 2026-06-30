@@ -1,9 +1,12 @@
-const React         = window.React;
-const ReactDOM       = window.ReactDOM;
-const IntakeForm     = window.IntakeForm;
-const InterviewScreen = window.InterviewScreen;
-const HistoryScreen  = window.HistoryScreen;
-const EnglishCoach   = window.EnglishCoach;
+const React            = window.React;
+const ReactDOM         = window.ReactDOM;
+const IntakeForm       = window.IntakeForm;
+const InterviewScreen  = window.InterviewScreen;
+const HistoryScreen    = window.HistoryScreen;
+const EnglishCoach     = window.EnglishCoach;
+const ProfileScreen    = window.ProfileScreen;
+const QuizScreen       = window.QuizScreen;
+const CodeEditor       = window.CodeEditor;
 
 function App() {
     const [authState, setAuthState] = React.useState('loading'); // loading | authenticated | error
@@ -41,6 +44,12 @@ function App() {
             setRoute({ name: 'history' });
         } else if (hash === '#/english') {
             setRoute({ name: 'english' });
+        } else if (hash === '#/profile') {
+            setRoute({ name: 'profile' });
+        } else if (hash === '#/quiz') {
+            setRoute({ name: 'quiz' });
+        } else if (hash === '#/code') {
+            setRoute({ name: 'code' });
         } else {
             setRoute({ name: 'intake' });
         }
@@ -84,6 +93,11 @@ function App() {
     }
 
     const isInterview = route?.name === 'interview';
+    const isCode      = route?.name === 'code';
+
+    function navClass(name) {
+        return `text-sm transition-colors ${route?.name === name ? 'text-gray-200' : 'text-gray-500 hover:text-gray-200'}`;
+    }
 
     return (
         <div className="min-h-screen bg-base text-gray-200 font-sans">
@@ -96,17 +110,19 @@ function App() {
 
                 {user && (
                     <div className="flex items-center gap-4">
-                        {!isInterview && (
+                        {!isInterview && !isCode && (
                             <>
-                                <a href="#/history"
-                                    className={`text-sm transition-colors ${route?.name === 'history' ? 'text-gray-200' : 'text-gray-500 hover:text-gray-200'}`}>
-                                    History
-                                </a>
-                                <a href="#/english"
-                                    className={`text-sm transition-colors ${route?.name === 'english' ? 'text-gray-200' : 'text-gray-500 hover:text-gray-200'}`}>
-                                    English Coach
-                                </a>
+                                <a href="#/history"  className={navClass('history')}>History</a>
+                                <a href="#/english"  className={navClass('english')}>English Coach</a>
+                                <a href="#/quiz"     className={navClass('quiz')}>Quiz</a>
+                                <a href="#/code"     className={navClass('code')}>Code</a>
+                                <a href="#/profile"  className={navClass('profile')}>My Profile</a>
                             </>
+                        )}
+                        {(isInterview || isCode) && (
+                            <a href="#/" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                                ← Home
+                            </a>
                         )}
                         <span className="text-xs text-muted hidden sm:block">
                             {user.name || user.email}
@@ -131,12 +147,11 @@ function App() {
                         firstQuestion={route.firstQuestion || null}
                         totalQuestions={route.totalQuestions || 10} />
                 )}
-                {route?.name === 'history' && (
-                    <HistoryScreen />
-                )}
-                {route?.name === 'english' && (
-                    <EnglishCoach />
-                )}
+                {route?.name === 'history' && <HistoryScreen />}
+                {route?.name === 'english' && <EnglishCoach />}
+                {route?.name === 'profile' && <ProfileScreen />}
+                {route?.name === 'quiz'    && <QuizScreen />}
+                {route?.name === 'code'    && <CodeEditor />}
             </main>
         </div>
     );
