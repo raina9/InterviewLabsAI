@@ -214,6 +214,8 @@ app:
     provider: ${AI_PROVIDER:ollama}
     # Default provider stored on new user profiles — injected at service layer, not hardcoded in entity
     default-provider: ${DEFAULT_AI_PROVIDER:ollama}
+    # Request timeout — enforced at RestClient level in WebMvcConfig
+    request-timeout-seconds: ${AI_REQUEST_TIMEOUT_SECONDS:120}
     gemini:
       # Google AI Studio → API Keys: https://aistudio.google.com/app/apikey
       api-key: ${GEMINI_API_KEY}
@@ -243,6 +245,25 @@ app:
       feedback-max-tokens:    ${AI_FEEDBACK_MAX_TOKENS:500}
       questions-temperature:  ${AI_QUESTIONS_TEMPERATURE:0.7}
       questions-max-tokens:   ${AI_QUESTIONS_MAX_TOKENS:1000}
+    # Domain-specific AI call options — separate token budgets reflect actual response sizes
+    quiz:
+      temperature:   ${AI_QUIZ_TEMPERATURE:0.5}
+      max-tokens:    ${AI_QUIZ_MAX_TOKENS:2000}
+    code:
+      generate-temperature:   ${AI_CODE_GEN_TEMPERATURE:0.5}
+      generate-max-tokens:    ${AI_CODE_GEN_MAX_TOKENS:1800}
+      review-temperature:     ${AI_CODE_REVIEW_TEMPERATURE:0.3}
+      review-max-tokens:      ${AI_CODE_REVIEW_MAX_TOKENS:1200}
+    curriculum:
+      temperature:   ${AI_CURRICULUM_TEMPERATURE:0.4}
+      max-tokens:    ${AI_CURRICULUM_MAX_TOKENS:1500}
+    drill:
+      generate-temperature:   ${AI_DRILL_GEN_TEMPERATURE:0.6}
+      generate-max-tokens:    ${AI_DRILL_GEN_MAX_TOKENS:1200}
+      evaluate-temperature:   ${AI_DRILL_EVAL_TEMPERATURE:0.3}
+      evaluate-max-tokens:    ${AI_DRILL_EVAL_MAX_TOKENS:500}
+      socratic-temperature:   ${AI_DRILL_SOCRATIC_TEMPERATURE:0.5}
+      socratic-max-tokens:    ${AI_DRILL_SOCRATIC_MAX_TOKENS:600}
     # Claude provider — parked (unpark: explicit owner instruction + cost evaluation)
     # claude:
     #   api-key: ${CLAUDE_API_KEY}
@@ -335,6 +356,14 @@ app:
   # ---------------------------------------------------------------------------
   # English Proficiency Coach — AI analysis of spoken/written transcripts
   # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Topic Drill — session length limits
+  # In-memory state (single-instance V1). Unpark Redis store for multi-instance deploy.
+  # ---------------------------------------------------------------------------
+  drill:
+    rapid-question-limit: ${DRILL_RAPID_LIMIT:10}
+    deep-turn-limit:      ${DRILL_DEEP_LIMIT:8}
+
   english:
     # System prompt for the English coaching agent — set via env var for full multi-line prompts
     system-prompt: ${ENGLISH_SYSTEM_PROMPT:You are an expert English language coach specialising in professional communication and interview coaching. Analyse the transcript for fluency, grammar, vocabulary, confidence, and filler word usage.}

@@ -6,35 +6,36 @@ import java.util.UUID;
 
 public class DrillSessionState {
 
-    // Max turns for DEEP mode (socratic drilling)
-    static final int RAPID_QUESTION_LIMIT = 10;
-    static final int DEEP_TURN_LIMIT      = 8;
-
     public record Turn(String question, String answer, int score) {}
 
     private final UUID      sessionId;
     private final String    topic;
     private final DrillMode mode;
-    private final List<String> rapidQuestions;  // pre-generated for RAPID mode; empty for DEEP
+    private final int       rapidQuestionLimit;
+    private final int       deepTurnLimit;
+    private final List<String> rapidQuestions;
     private final List<Turn>   history;
     private String             currentQuestion;
     private boolean            complete;
 
     public DrillSessionState(UUID sessionId, String topic, DrillMode mode,
-                             List<String> rapidQuestions, String firstQuestion) {
-        this.sessionId      = sessionId;
-        this.topic          = topic;
-        this.mode           = mode;
-        this.rapidQuestions = new ArrayList<>(rapidQuestions);
-        this.history        = new ArrayList<>();
-        this.currentQuestion = firstQuestion;
-        this.complete        = false;
+                             List<String> rapidQuestions, String firstQuestion,
+                             int rapidQuestionLimit, int deepTurnLimit) {
+        this.sessionId          = sessionId;
+        this.topic              = topic;
+        this.mode               = mode;
+        this.rapidQuestionLimit = rapidQuestionLimit;
+        this.deepTurnLimit      = deepTurnLimit;
+        this.rapidQuestions     = new ArrayList<>(rapidQuestions);
+        this.history            = new ArrayList<>();
+        this.currentQuestion    = firstQuestion;
+        this.complete           = false;
     }
 
-    public UUID    getSessionId()      { return sessionId; }
-    public String  getTopic()          { return topic; }
-    public DrillMode getMode()         { return mode; }
-    public List<Turn> getHistory()     { return history; }
+    public UUID    getSessionId()       { return sessionId; }
+    public String  getTopic()           { return topic; }
+    public DrillMode getMode()          { return mode; }
+    public List<Turn> getHistory()      { return history; }
     public String  getCurrentQuestion() { return currentQuestion; }
     public boolean isComplete()         { return complete; }
 
@@ -44,7 +45,7 @@ public class DrillSessionState {
 
     public void advanceTo(String nextQuestion) {
         currentQuestion = nextQuestion;
-        int limit = mode == DrillMode.RAPID ? RAPID_QUESTION_LIMIT : DEEP_TURN_LIMIT;
+        int limit = mode == DrillMode.RAPID ? rapidQuestionLimit : deepTurnLimit;
         if (nextQuestion == null || history.size() >= limit) complete = true;
     }
 

@@ -3,6 +3,7 @@ package com.interviewlab.agent;
 import com.interviewlab.agent.tools.AgentContext;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
 import com.interviewlab.session.*;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class InterviewAgent {
     private final AIProviderFactory          aiProviderFactory;
     private final SessionRepository          sessionRepository;
     private final MessageService             messageService;
+    private final AiProperties               aiProperties;
 
     public String initSession(UUID userId, UUID sessionId) {
         Session session = findSessionOrThrow(sessionId);
@@ -37,7 +39,7 @@ public class InterviewAgent {
         Map<String, String> toolResults = agentToolChain.execute(ctx);
 
         String prompt   = promptBuilder.buildSessionPrompt(session, toolResults);
-        String question = aiProviderFactory.getDefaultProvider().generate(prompt, AIOptions.forQuestions());
+        String question = aiProviderFactory.getDefaultProvider().generate(prompt, questionsOptions());
 
         messageService.addMessage(sessionId, MessageRole.INTERVIEWER, question, false);
         log.info("InterviewAgent initiated: sessionId={} userId={}", sessionId, userId);
@@ -64,12 +66,17 @@ public class InterviewAgent {
         Map<String, String> toolResults = agentToolChain.execute(ctx);
 
         String prompt        = promptBuilder.buildFollowUpPrompt(session, lastQuestion, candidateAnswer, toolResults);
-        String agentResponse = aiProviderFactory.getDefaultProvider().generate(prompt, AIOptions.forQuestions());
+        String agentResponse = aiProviderFactory.getDefaultProvider().generate(prompt, questionsOptions());
 
         messageService.addMessage(sessionId, MessageRole.INTERVIEWER, agentResponse, false);
 
         log.debug("InterviewAgent turn: sessionId={} questionNumber={}", sessionId, questionNumber);
         return new InterviewTurnResult(agentResponse, false, questionNumber, candidateMessage.getId());
+    }
+
+    private AIOptions questionsOptions() {
+        AiProperties.OptionsConfig opts = aiProperties.options();
+        return new AIOptions(opts.questionsTemperature(), opts.questionsMaxTokens(), false);
     }
 
     private Session findSessionOrThrow(UUID sessionId) {

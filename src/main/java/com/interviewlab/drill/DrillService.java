@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,12 +22,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class DrillService {
 
-    private static final AIOptions GENERATE_OPTIONS  = new AIOptions(0.6f, 1200, false);
-    private static final AIOptions EVALUATE_OPTIONS  = new AIOptions(0.3f, 500,  false);
-    private static final AIOptions SOCRATIC_OPTIONS  = new AIOptions(0.5f, 600,  false);
-
     private final AIProviderFactory aiProviderFactory;
     private final ObjectMapper      objectMapper;
+    private final AiProperties      aiProperties;
+    private final DrillProperties   drillProperties;
 
     private final Map<UUID, DrillSessionState> sessions = new ConcurrentHashMap<>();
 
@@ -43,7 +42,8 @@ public class DrillService {
 
         UUID sessionId = UUID.randomUUID();
         DrillSessionState state = new DrillSessionState(
-            sessionId, request.topic(), request.mode(), rapidQuestions, firstQuestion
+            sessionId, request.topic(), request.mode(), rapidQuestions, firstQuestion,
+            drillProperties.rapidQuestionLimit(), drillProperties.deepTurnLimit()
         );
         sessions.put(sessionId, state);
         log.info("Drill started: sessionId={} topic={} mode={}", sessionId, request.topic(), request.mode());
@@ -61,13 +61,11 @@ public class DrillService {
             );
         }
 
-        // Evaluate the submitted answer to the current question
         int    score    = evaluateAnswer(state.getCurrentQuestion(), request.answer(), state.getTopic());
         String feedback = generateFeedback(state.getCurrentQuestion(), request.answer(), state.getTopic());
         state.recordTurn(request.answer(), score);
         log.debug("Drill turn: sessionId={} score={}", sessionId, score);
 
-        // Generate next question
         String nextQuestion;
         if (state.getMode() == DrillMode.RAPID) {
             nextQuestion = state.nextRapidQuestion();
@@ -137,7 +135,7 @@ public class DrillService {
             Each question should be answerable in 2-3 sentences. Return ONLY valid JSON:
             {"questions": ["Question 1?", "Question 2?", ..., "Question 10?"]}
             """.formatted(topic);
-        String raw = aiProviderFactory.getDefaultProvider().generateJson(prompt, GENERATE_OPTIONS);
+        String raw = aiProviderFactory.getDefaultProvider().generateJson(prompt, generateOptions());
         try {
             String json = extractJson(raw);
             Map<String, List<String>> parsed = objectMapper.readValue(json, new TypeReference<>() {});
@@ -160,7 +158,7 @@ public class DrillService {
 
     private String generateOpeningDeepQuestion(String topic) {
         String prompt = "Generate one open-ended interview question about \"%s\" that invites a deep, detailed answer. Return just the question, no additional text.".formatted(topic);
-        return aiProviderFactory.getDefaultProvider().generate(prompt, AIOptions.defaults()).trim();
+        return aiProviderFactory.getDefaultProvider().generate(prompt, defaultOptions()).trim();
     }
 
     private String generateDeepFollowUp(String topic, String prevQuestion, String prevAnswer) {
@@ -171,7 +169,7 @@ public class DrillService {
             Generate ONE sharp follow-up question that probes deeper or challenges an assumption in the answer.
             Return just the question, no additional text.
             """.formatted(topic, prevQuestion, prevAnswer);
-        return aiProviderFactory.getDefaultProvider().generate(prompt, SOCRATIC_OPTIONS).trim();
+        return aiProviderFactory.getDefaultProvider().generate(prompt, socraticOptions()).trim();
     }
 
     private int evaluateAnswer(String question, String answer, String topic) {
@@ -182,7 +180,7 @@ public class DrillService {
             Return ONLY valid JSON: {"score": 7}
             Score guide: 1-3=incorrect/very weak, 4-6=partial, 7-8=good, 9-10=excellent.
             """.formatted(topic, question, answer);
-        String raw = aiProviderFactory.getDefaultProvider().generateJson(prompt, EVALUATE_OPTIONS);
+        String raw = aiProviderFactory.getDefaultProvider().generateJson(prompt, evaluateOptions());
         try {
             String json = extractJson(raw);
             @SuppressWarnings("unchecked")
@@ -211,7 +209,27 @@ public class DrillService {
             Answer: %s
             Be specific and actionable. Return just the feedback text, no JSON.
             """.formatted(topic, question, answer);
-        return aiProviderFactory.getDefaultProvider().generate(prompt, EVALUATE_OPTIONS).trim();
+        return aiProviderFactory.getDefaultProvider().generate(prompt, evaluateOptions()).trim();
+    }
+
+    private AIOptions generateOptions() {
+        AiProperties.DrillOptions d = aiProperties.drill();
+        return new AIOptions(d.generateTemperature(), d.generateMaxTokens(), false);
+    }
+
+    private AIOptions evaluateOptions() {
+        AiProperties.DrillOptions d = aiProperties.drill();
+        return new AIOptions(d.evaluateTemperature(), d.evaluateMaxTokens(), false);
+    }
+
+    private AIOptions socraticOptions() {
+        AiProperties.DrillOptions d = aiProperties.drill();
+        return new AIOptions(d.socraticTemperature(), d.socraticMaxTokens(), false);
+    }
+
+    private AIOptions defaultOptions() {
+        AiProperties.OptionsConfig opts = aiProperties.options();
+        return new AIOptions(opts.defaultTemperature(), opts.defaultMaxTokens(), false);
     }
 
     private String extractJson(String raw) {

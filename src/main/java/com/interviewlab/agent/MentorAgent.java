@@ -6,6 +6,7 @@ import com.interviewlab.agent.tools.AgentContext;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderException;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
 import com.interviewlab.session.Session;
 import com.interviewlab.session.SessionException;
@@ -33,6 +34,7 @@ public class MentorAgent {
     private final AIProviderFactory       aiProviderFactory;
     private final SessionRepository       sessionRepository;
     private final ObjectMapper            objectMapper;
+    private final AiProperties            aiProperties;
 
     public MentorFeedback analyze(UUID sessionId, UUID messageId, String question, String candidateAnswer) {
         Session session = findSessionOrThrow(sessionId);
@@ -41,11 +43,16 @@ public class MentorAgent {
         Map<String, String> toolResults = agentToolChain.execute(ctx);
 
         String prompt       = promptBuilder.buildFeedbackPrompt(question, candidateAnswer, session, toolResults);
-        String jsonResponse = aiProviderFactory.getDefaultProvider().generateJson(prompt, AIOptions.forFeedback());
+        String jsonResponse = aiProviderFactory.getDefaultProvider().generateJson(prompt, feedbackOptions());
 
         MentorFeedback feedback = parseFeedback(jsonResponse);
         log.info("MentorAgent scored: sessionId={} messageId={} score={}", sessionId, messageId, feedback.score());
         return feedback;
+    }
+
+    private AIOptions feedbackOptions() {
+        AiProperties.OptionsConfig opts = aiProperties.options();
+        return new AIOptions(opts.feedbackTemperature(), opts.feedbackMaxTokens(), false);
     }
 
     private MentorFeedback parseFeedback(String jsonResponse) {

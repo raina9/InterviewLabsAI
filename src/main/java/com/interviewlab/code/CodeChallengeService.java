@@ -3,6 +3,7 @@ package com.interviewlab.code;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,9 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class CodeChallengeService {
 
-    private static final AIOptions CHALLENGE_OPTIONS = new AIOptions(0.5f, 1800, false);
-    private static final AIOptions REVIEW_OPTIONS    = new AIOptions(0.3f, 1200, false);
-
     private static final Map<String, Integer> LANGUAGE_IDS = Map.of(
         "java",       62,
         "python",     71,
@@ -32,12 +30,13 @@ public class CodeChallengeService {
     private final Judge0Properties  judge0Properties;
     private final ObjectMapper      objectMapper;
     private final RestClient.Builder restClientBuilder;
+    private final AiProperties      aiProperties;
 
     private final Map<UUID, CodeChallenge> challenges = new ConcurrentHashMap<>();
 
     public CodeChallenge generateChallenge(CodeChallengeRequest request) {
         String prompt = buildChallengePrompt(request.topic(), request.difficulty());
-        String raw    = aiProviderFactory.getDefaultProvider().generateJson(prompt, CHALLENGE_OPTIONS);
+        String raw    = aiProviderFactory.getDefaultProvider().generateJson(prompt, challengeOptions());
         try {
             String json  = extractJson(raw);
             CodeChallenge partial = objectMapper.readValue(json, CodeChallenge.class);
@@ -80,10 +79,9 @@ public class CodeChallengeService {
             passed          = result.accepted();
             executionResult = formatExecutionResult(result);
         } else {
-            // Judge0 not configured — AI code review as fallback
             log.info("Judge0 not configured — using AI code review for challengeId={}", request.challengeId());
             executionResult = "Execution environment not configured. AI code review applied.";
-            passed          = false; // determined by AI review below
+            passed          = false;
         }
 
         CodeSubmitResponse aiReview = getAiCodeReview(challenge, request.code(), request.language(), executionResult);
@@ -109,7 +107,7 @@ public class CodeChallengeService {
             Constraints: %s
             Hint should guide the approach without revealing the answer. 2-3 sentences max.
             """.formatted(challenge.title(), challenge.description(), challenge.constraints());
-        return aiProviderFactory.getDefaultProvider().generate(prompt, AIOptions.defaults());
+        return aiProviderFactory.getDefaultProvider().generate(prompt, defaultOptions());
     }
 
     private Judge0SubmissionResult executeViaJudge0(String code, String language) {
@@ -157,7 +155,7 @@ public class CodeChallengeService {
             }
             Be specific. passed=true only if the logic is correct and handles all cases.
             """.formatted(challenge.title(), challenge.description(), language, code, executionResult);
-        String raw = aiProviderFactory.getDefaultProvider().generateJson(prompt, REVIEW_OPTIONS);
+        String raw = aiProviderFactory.getDefaultProvider().generateJson(prompt, reviewOptions());
         try {
             String json = extractJson(raw);
             @SuppressWarnings("unchecked")
@@ -177,6 +175,21 @@ public class CodeChallengeService {
                 "Failed to evaluate code submission. Please retry your request."
             );
         }
+    }
+
+    private AIOptions challengeOptions() {
+        AiProperties.CodeOptions c = aiProperties.code();
+        return new AIOptions(c.generateTemperature(), c.generateMaxTokens(), false);
+    }
+
+    private AIOptions reviewOptions() {
+        AiProperties.CodeOptions c = aiProperties.code();
+        return new AIOptions(c.reviewTemperature(), c.reviewMaxTokens(), false);
+    }
+
+    private AIOptions defaultOptions() {
+        AiProperties.OptionsConfig opts = aiProperties.options();
+        return new AIOptions(opts.defaultTemperature(), opts.defaultMaxTokens(), false);
     }
 
     private String buildChallengePrompt(String topic, String difficulty) {

@@ -3,6 +3,7 @@ package com.interviewlab.curriculum;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
 import com.interviewlab.assessment.AssessmentReport;
 import com.interviewlab.assessment.AssessmentService;
 import com.interviewlab.auth.ErrorCode;
@@ -19,19 +20,18 @@ import java.util.UUID;
 @Service
 public class CurriculumService {
 
-    // Lower temperature for deterministic curriculum order; more tokens for multi-item JSON.
-    private static final AIOptions CURRICULUM_OPTIONS = new AIOptions(0.4f, 1500, false);
-
-    private final AssessmentService    assessmentService;
+    private final AssessmentService       assessmentService;
     private final CurriculumPromptBuilder promptBuilder;
-    private final AIProviderFactory    aiProviderFactory;
-    private final ObjectMapper         objectMapper;
+    private final AIProviderFactory       aiProviderFactory;
+    private final ObjectMapper            objectMapper;
+    private final AiProperties            aiProperties;
 
     @Transactional(readOnly = true)
     public CurriculumPlan generatePlan(UUID userId) {
         AssessmentReport report = assessmentService.generateReport(userId);
         String prompt           = promptBuilder.buildCurriculumPrompt(report);
-        String rawJson          = aiProviderFactory.getDefaultProvider().generateJson(prompt, CURRICULUM_OPTIONS);
+        AIOptions opts          = curriculumOptions();
+        String rawJson          = aiProviderFactory.getDefaultProvider().generateJson(prompt, opts);
 
         try {
             String json = extractJson(rawJson);
@@ -46,6 +46,11 @@ public class CurriculumService {
                 "Failed to generate curriculum. Please retry your request."
             );
         }
+    }
+
+    private AIOptions curriculumOptions() {
+        AiProperties.CurriculumOptions c = aiProperties.curriculum();
+        return new AIOptions(c.temperature(), c.maxTokens(), false);
     }
 
     private String extractJson(String raw) {

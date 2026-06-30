@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,10 +21,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class QuizService {
 
-    private static final AIOptions QUIZ_OPTIONS = new AIOptions(0.5f, 2000, false);
-
     private final AIProviderFactory aiProviderFactory;
     private final ObjectMapper      objectMapper;
+    private final AiProperties      aiProperties;
 
     private final Map<UUID, QuizSessionState> sessions = new ConcurrentHashMap<>();
 
@@ -101,7 +101,8 @@ public class QuizService {
 
     private List<QuizQuestion> generateQuestions(String topic, String difficulty, int count) {
         String prompt = buildQuizPrompt(topic, difficulty, count);
-        String raw    = aiProviderFactory.getDefaultProvider().generateJson(prompt, QUIZ_OPTIONS);
+        AIOptions opts = quizOptions();
+        String raw    = aiProviderFactory.getDefaultProvider().generateJson(prompt, opts);
         try {
             String json = extractJson(raw);
             Map<String, List<QuizQuestion>> parsed = objectMapper.readValue(
@@ -120,6 +121,11 @@ public class QuizService {
                 "Failed to generate quiz questions. Please retry your request."
             );
         }
+    }
+
+    private AIOptions quizOptions() {
+        AiProperties.QuizOptions q = aiProperties.quiz();
+        return new AIOptions(q.temperature(), q.maxTokens(), false);
     }
 
     private String buildQuizPrompt(String topic, String difficulty, int count) {

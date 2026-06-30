@@ -3,6 +3,7 @@ package com.interviewlab.config;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -15,12 +16,19 @@ import java.time.Duration;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
+    private final int requestTimeoutSeconds;
+
+    public WebMvcConfig(
+            @Value("${app.ai.request-timeout-seconds:120}") int requestTimeoutSeconds) {
+        this.requestTimeoutSeconds = requestTimeoutSeconds;
+    }
+
     @Bean
     public RestClient.Builder restClientBuilder() {
-        // 120s read timeout — Ollama cold start (model load) takes 30-40s on first call.
-        // OllamaApiAutoConfiguration picks up this builder via ObjectProvider<RestClient.Builder>.
+        // Timeout covers Ollama cold start (model load takes 30-40s) + AI response generation.
+        // Override via AI_REQUEST_TIMEOUT_SECONDS env var.
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory();
-        factory.setReadTimeout(Duration.ofSeconds(120));
+        factory.setReadTimeout(Duration.ofSeconds(requestTimeoutSeconds));
         return RestClient.builder().requestFactory(factory);
     }
 

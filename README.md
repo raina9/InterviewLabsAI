@@ -165,6 +165,12 @@ See [.env.example](.env.example) for the full reference with descriptions.
 - `docs/` — HLD, LLD, System Design, API Contracts, DB Schema (added per checkpoint)
 - `session-notes/` — Session-by-session development log
 
+## Known Limitations
+
+- **In-memory session stores** — Quiz, Topic Drill, and Code Challenge sessions are held in-memory (`ConcurrentHashMap`). A single-instance deployment loses active sessions on restart. Multi-instance deployments (horizontal scaling, rolling deploys) will drop sessions that land on a different instance. Redis-backed stores are parked and activatable when needed.
+- **Google OAuth (dev mode)** — The default `AUTH_MODE=dev` bypasses Google login entirely. See [Setting Up Google OAuth](#setting-up-google-oauth-production-mode) for switching to production auth before exposing the app publicly.
+- **No rate limiting persistence** — Rate limit counters are in-memory and reset on restart. Switching to Redis rate limiting requires activating the `app.rate-limit.mode=redis` path (parked, not yet implemented).
+
 ## Contributing
 
 Contributions welcome — open a PR or issue.
