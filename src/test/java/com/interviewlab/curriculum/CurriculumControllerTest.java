@@ -18,6 +18,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -43,12 +44,12 @@ class CurriculumControllerTest {
 
     private CurriculumPlan samplePlan() {
         List<CurriculumItem> items = List.of(
-            new CurriculumItem("Kafka", "HIGH", "Critical gap — blocking senior-level interviews.", 14,
+            new CurriculumItem("Kafka", "HIGH", "Critical gap — blocking senior-level interviews.", "14",
                 List.of("Producers and consumers", "Consumer groups", "Partitions")),
-            new CurriculumItem("Docker", "MEDIUM", "Expected in cloud-native roles.", 7,
+            new CurriculumItem("Docker", "MEDIUM", "Expected in cloud-native roles.", "7",
                 List.of("Dockerfile", "docker-compose", "Layered builds"))
         );
-        return new CurriculumPlan(items, 3, "Backend engineering and distributed systems");
+        return new CurriculumPlan(items, "3", "Backend engineering and distributed systems");
     }
 
     // -------------------------------------------------------------------------
@@ -64,7 +65,7 @@ class CurriculumControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items").isArray())
             .andExpect(jsonPath("$.items.length()").value(2))
-            .andExpect(jsonPath("$.estimatedWeeks").value(3))
+            .andExpect(jsonPath("$.estimatedWeeks").value("3"))
             .andExpect(jsonPath("$.focus").isNotEmpty())
             .andExpect(jsonPath("$.items[0].topic").value("Kafka"))
             .andExpect(jsonPath("$.items[0].priority").value("HIGH"));
@@ -74,6 +75,18 @@ class CurriculumControllerTest {
     void generateCurriculum_unauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/curriculum/{userId}", USER_ID))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void generateCurriculum_otherUsersCurriculum_returns403() throws Exception {
+        UUID otherUserId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/v1/curriculum/{userId}", otherUserId)
+                .with(authentication(authToken())))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.errorCode").value("CURRICULUM_ACCESS_DENIED"));
+
+        verifyNoInteractions(curriculumService);
     }
 
     @Test

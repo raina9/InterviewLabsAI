@@ -38,8 +38,8 @@ Role column reflects the only role that currently exists — every authenticated
 | `/api/v1/interview/{sessionId}/feedback` | GET | Yes | Own session only | N/A |
 | `/api/v1/assessment/start` | POST | Yes | Own assessment | N/A |
 | `/api/v1/assessment/submit` | POST | Yes | Own assessment | N/A |
-| `/api/v1/assessment/report/{userId}` | GET | Yes | **Path-parameter `userId`, not derived from principal — see gap below** | N/A |
-| `/api/v1/curriculum/{userId}` | GET | Yes | **Path-parameter `userId`, not derived from principal — see gap below** | N/A |
+| `/api/v1/assessment/report/{userId}` | GET | Yes | Own report only — `principal.id()` compared against path `userId`; mismatch → 403 `ASSESSMENT_ACCESS_DENIED` (fixed, see Known Gaps) | N/A |
+| `/api/v1/curriculum/{userId}` | GET | Yes | Own plan only — `principal.id()` compared against path `userId`; mismatch → 403 `CURRICULUM_ACCESS_DENIED` (fixed, see Known Gaps) | N/A |
 | `/api/v1/quiz/start` | POST | Yes | Own quiz session | N/A |
 | `/api/v1/quiz/{sessionId}/answer` | POST | Yes | Own quiz session | N/A |
 | `/api/v1/quiz/{sessionId}/result` | GET | Yes | Own quiz session | N/A |
@@ -57,7 +57,7 @@ Role column reflects the only role that currently exists — every authenticated
 
 ## Known Gaps
 
-1. **`{userId}` path parameters are not verified against the authenticated principal.** `/api/v1/assessment/report/{userId}` and `/api/v1/curriculum/{userId}` accept `userId` as a raw path variable. Nothing in `SecurityConfig` or (per current source review) the controller/service layer confirms `userId == principal.id()` before returning data — an authenticated user could request another user's `userId` and, if the row exists, potentially read their assessment report or curriculum. This is an IDOR-shaped gap and should be the first thing fixed if this matrix is being read as a pre-launch checklist, not just documentation.
+1. ~~**`{userId}` path parameters are not verified against the authenticated principal.**~~ **FIXED.** `/api/v1/assessment/report/{userId}` and `/api/v1/curriculum/{userId}` previously accepted `userId` as a raw path variable with no check against the authenticated principal — an IDOR (CWE-639): any authenticated user could substitute another user's UUID and read their assessment report or curriculum plan. Both controllers now derive the requesting identity from `@AuthenticationPrincipal AuthenticatedUser` and compare it against the path `userId` before calling the service layer; a mismatch throws `AssessmentException(ASSESSMENT_ACCESS_DENIED, 403)` / `CurriculumException(CURRICULUM_ACCESS_DENIED, 403)` and the underlying service is never invoked (verified via `verifyNoInteractions` in the regression tests). See `docs/decisions/` for context — this was surfaced during the authz-matrix authoring pass itself (writing the matrix required reading the actual controller source, not just describing intended behavior), fixed the same session. Covered by `AssessmentControllerTest.report_otherUsersReport_returns403` and `CurriculumControllerTest.generateCurriculum_otherUsersCurriculum_returns403`.
 2. **No `ADMIN` role exists.** Any future admin surface (user management, content moderation, system-wide analytics) has no authorization scaffolding to plug into yet — it would need a `role` column on `User`, `@PreAuthorize`/`hasRole()` checks, and explicit `SecurityConfig` matcher rules added from scratch.
 3. **API documentation is `permitAll` in all environments** (no environment-based restriction currently implemented despite the comment noting it should be prod-restricted).
 

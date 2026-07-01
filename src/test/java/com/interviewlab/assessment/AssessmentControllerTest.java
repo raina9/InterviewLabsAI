@@ -23,6 +23,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -169,5 +170,17 @@ class AssessmentControllerTest {
     void report_unauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/assessment/report/{userId}", USER_ID))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void report_otherUsersReport_returns403() throws Exception {
+        UUID otherUserId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/v1/assessment/report/{userId}", otherUserId)
+                .with(authentication(authToken())))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.errorCode").value("ASSESSMENT_ACCESS_DENIED"));
+
+        verifyNoInteractions(assessmentService);
     }
 }

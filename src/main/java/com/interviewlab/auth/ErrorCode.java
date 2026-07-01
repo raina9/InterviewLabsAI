@@ -29,8 +29,10 @@ public enum ErrorCode {
 
     ASSESSMENT_PROFILE_NOT_FOUND("User profile not found. Complete your profile with tech stack before starting assessment."),
     ASSESSMENT_NOT_FOUND("No assessment data found. Complete a self-assessment first."),
+    ASSESSMENT_ACCESS_DENIED("You do not have access to this assessment report."),
 
     CURRICULUM_GENERATION_FAILED("Failed to generate curriculum. Please retry your request."),
+    CURRICULUM_ACCESS_DENIED("You do not have access to this curriculum plan."),
 
     QUIZ_SESSION_NOT_FOUND("Quiz session not found. It may have expired or not been started."),
     QUIZ_ALREADY_COMPLETED("This quiz session is already complete. Retrieve the result instead."),
