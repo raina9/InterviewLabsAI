@@ -2,6 +2,8 @@ package com.interviewlab.agent;
 
 import com.interviewlab.agent.tools.AgentContext;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
+import com.interviewlab.ai.AiProvider;
 import com.interviewlab.ai.AiProviderStrategy;
 import com.interviewlab.session.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,10 +39,21 @@ class InterviewAgentTest {
     private static final UUID USER_ID    = UUID.randomUUID();
     private static final UUID SESSION_ID = UUID.randomUUID();
 
+    private final AiProperties aiProperties = new AiProperties(
+        AiProvider.OLLAMA,
+        120,
+        new AiProperties.GeminiConfig("gemini-flash-lite-latest", "http://test", "key"),
+        new AiProperties.OptionsConfig(0.7f, 800, 0.3f, 500, 0.7f, 1000),
+        new AiProperties.QuizOptions(0.7f, 1000),
+        new AiProperties.CodeOptions(0.7f, 1000, 0.3f, 800),
+        new AiProperties.CurriculumOptions(0.5f, 1000),
+        new AiProperties.DrillOptions(0.7f, 800, 0.3f, 500, 0.5f, 700)
+    );
+
     @BeforeEach
     void setUp() {
         interviewAgent = new InterviewAgent(
-            agentToolChain, promptBuilder, aiProviderFactory, sessionRepository, messageService
+            agentToolChain, promptBuilder, aiProviderFactory, sessionRepository, messageService, aiProperties
         );
         when(aiProviderFactory.getDefaultProvider()).thenReturn(aiProvider);
     }

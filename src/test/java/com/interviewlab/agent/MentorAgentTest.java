@@ -3,6 +3,8 @@ package com.interviewlab.agent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewlab.agent.tools.AgentContext;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
+import com.interviewlab.ai.AiProvider;
 import com.interviewlab.ai.AiProviderStrategy;
 import com.interviewlab.auth.ErrorCode;
 import com.interviewlab.session.Session;
@@ -43,10 +45,21 @@ class MentorAgentTest {
     private static final UUID SESSION_ID = UUID.randomUUID();
     private static final UUID MESSAGE_ID = UUID.randomUUID();
 
+    private final AiProperties aiProperties = new AiProperties(
+        AiProvider.OLLAMA,
+        120,
+        new AiProperties.GeminiConfig("gemini-flash-lite-latest", "http://test", "key"),
+        new AiProperties.OptionsConfig(0.7f, 800, 0.3f, 500, 0.7f, 1000),
+        new AiProperties.QuizOptions(0.7f, 1000),
+        new AiProperties.CodeOptions(0.7f, 1000, 0.3f, 800),
+        new AiProperties.CurriculumOptions(0.5f, 1000),
+        new AiProperties.DrillOptions(0.7f, 800, 0.3f, 500, 0.5f, 700)
+    );
+
     @BeforeEach
     void setUp() {
         mentorAgent = new MentorAgent(
-            agentToolChain, promptBuilder, aiProviderFactory, sessionRepository, objectMapper
+            agentToolChain, promptBuilder, aiProviderFactory, sessionRepository, objectMapper, aiProperties
         );
         when(aiProviderFactory.getDefaultProvider()).thenReturn(aiProvider);
     }

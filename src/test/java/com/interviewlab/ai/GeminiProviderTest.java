@@ -23,12 +23,17 @@ class GeminiProviderTest {
 
     AiProperties aiProperties = new AiProperties(
         AiProvider.GEMINI,
+        120,
         new AiProperties.GeminiConfig(
             "gemini-test-model",
             "http://mock-gemini.test/v1beta/models",
             "test-api-key"
         ),
-        new AiProperties.OptionsConfig(0.7f, 800, 0.3f, 500, 0.7f, 1000)
+        new AiProperties.OptionsConfig(0.7f, 800, 0.3f, 500, 0.7f, 1000),
+        new AiProperties.QuizOptions(0.7f, 1000),
+        new AiProperties.CodeOptions(0.7f, 1000, 0.3f, 800),
+        new AiProperties.CurriculumOptions(0.5f, 1000),
+        new AiProperties.DrillOptions(0.7f, 800, 0.3f, 500, 0.5f, 700)
     );
 
     @BeforeEach
