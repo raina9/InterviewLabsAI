@@ -77,3 +77,6 @@ session-notes/
 
 # Claude Code local project config — never publish
 .claude/
+
+# Mentorship notes — internal interview-prep material, not for the public repo
+docs/mentorship/
