@@ -3,11 +3,13 @@ package com.interviewlab.code;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
+import com.interviewlab.ai.AiProvider;
 import com.interviewlab.ai.AiProviderStrategy;
 import com.interviewlab.auth.ErrorCode;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,7 +33,27 @@ class CodeChallengeServiceTest {
     @Mock RestClient.Builder restClientBuilder;
     @Spy  ObjectMapper       objectMapper = new ObjectMapper();
 
-    @InjectMocks CodeChallengeService codeChallengeService;
+    // AiProperties is a record — Mockito @InjectMocks cannot supply it, so it is
+    // constructed for real (same pattern as InterviewAgentTest/MentorAgentTest).
+    private final AiProperties aiProperties = new AiProperties(
+        AiProvider.OLLAMA,
+        120,
+        new AiProperties.GeminiConfig("gemini-flash-lite-latest", "http://test", "key"),
+        new AiProperties.OptionsConfig(0.7f, 800, 0.3f, 500, 0.7f, 1000),
+        new AiProperties.QuizOptions(0.7f, 1000),
+        new AiProperties.CodeOptions(0.7f, 1000, 0.3f, 800),
+        new AiProperties.CurriculumOptions(0.5f, 1000),
+        new AiProperties.DrillOptions(0.7f, 800, 0.3f, 500, 0.5f, 700)
+    );
+
+    CodeChallengeService codeChallengeService;
+
+    @BeforeEach
+    void setUp() {
+        codeChallengeService = new CodeChallengeService(
+            aiProviderFactory, judge0Properties, objectMapper, restClientBuilder, aiProperties
+        );
+    }
 
     private static final String VALID_CHALLENGE_JSON = """
         {

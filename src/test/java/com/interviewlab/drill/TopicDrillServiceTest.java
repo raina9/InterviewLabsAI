@@ -3,11 +3,13 @@ package com.interviewlab.drill;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
+import com.interviewlab.ai.AiProvider;
 import com.interviewlab.ai.AiProviderStrategy;
 import com.interviewlab.auth.ErrorCode;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,7 +29,28 @@ class TopicDrillServiceTest {
     @Mock AiProviderStrategy aiProvider;
     @Spy  ObjectMapper       objectMapper = new ObjectMapper();
 
-    @InjectMocks DrillService drillService;
+    // AiProperties and DrillProperties are records — Mockito @InjectMocks cannot supply
+    // them, so they are constructed for real (same pattern as InterviewAgentTest/
+    // MentorAgentTest). DrillProperties values match application.yml's production defaults
+    // (app.drill.rapid-question-limit=10, app.drill.deep-turn-limit=8).
+    private final AiProperties aiProperties = new AiProperties(
+        AiProvider.OLLAMA,
+        120,
+        new AiProperties.GeminiConfig("gemini-flash-lite-latest", "http://test", "key"),
+        new AiProperties.OptionsConfig(0.7f, 800, 0.3f, 500, 0.7f, 1000),
+        new AiProperties.QuizOptions(0.7f, 1000),
+        new AiProperties.CodeOptions(0.7f, 1000, 0.3f, 800),
+        new AiProperties.CurriculumOptions(0.5f, 1000),
+        new AiProperties.DrillOptions(0.7f, 800, 0.3f, 500, 0.5f, 700)
+    );
+    private final DrillProperties drillProperties = new DrillProperties(10, 8);
+
+    DrillService drillService;
+
+    @BeforeEach
+    void setUp() {
+        drillService = new DrillService(aiProviderFactory, objectMapper, aiProperties, drillProperties);
+    }
 
     private static final String RAPID_QUESTIONS_JSON = """
         {
@@ -233,8 +256,9 @@ class TopicDrillServiceTest {
         when(aiProvider.generateJson(anyString(), any(AIOptions.class)))
             .thenReturn(RAPID_QUESTIONS_JSON)      // startDrill: generates questions
             .thenReturn("not valid json score");   // nextQuestion: evaluate answer — malformed
-        when(aiProvider.generate(anyString(), any(AIOptions.class)))
-            .thenReturn("feedback");
+        // No stub for aiProvider.generate(...) (feedback text): evaluateAnswer() throws
+        // DrillException before generateFeedback() is ever called — a stub here would be
+        // unreachable and trip Mockito's strict-stubs UnnecessaryStubbingException.
 
         DrillSession start = drillService.startDrill(new DrillRequest("Java", DrillMode.RAPID));
 

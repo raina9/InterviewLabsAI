@@ -40,13 +40,16 @@ public class SecurityConfig {
     @Value("${GOOGLE_CLIENT_SECRET:not-configured}")
     private String googleClientSecret;
 
-    @Bean
-    public JwtAuthFilter jwtAuthFilter() {
+    // Not @Bean: only one of these is ever wired into the chain below (addFilterBefore),
+    // never both. A @Bean Filter is auto-registered by Spring Boot as a raw servlet-container
+    // filter running on every request regardless of AUTH_MODE — on top of, and independent
+    // from, whichever one Spring Security actually adds to the chain. That meant JwtAuthFilter
+    // ran even in dev mode and NPE'd on any request carrying a stale/unmocked jwt cookie.
+    private JwtAuthFilter jwtAuthFilter() {
         return new JwtAuthFilter(jwtService);
     }
 
-    @Bean
-    public DevTokenFilter devTokenFilter() {
+    private DevTokenFilter devTokenFilter() {
         return new DevTokenFilter(authProperties, objectMapper);
     }
 

@@ -3,15 +3,17 @@ package com.interviewlab.curriculum;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
+import com.interviewlab.ai.AiProperties;
+import com.interviewlab.ai.AiProvider;
 import com.interviewlab.ai.AiProviderStrategy;
 import com.interviewlab.assessment.AssessmentException;
 import com.interviewlab.assessment.AssessmentReport;
 import com.interviewlab.assessment.AssessmentService;
 import com.interviewlab.assessment.TopicScore;
 import com.interviewlab.auth.ErrorCode;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,7 +36,27 @@ class CurriculumServiceTest {
     @Mock AiProviderStrategy      aiProvider;
     @Spy  ObjectMapper            objectMapper = new ObjectMapper();
 
-    @InjectMocks CurriculumService curriculumService;
+    // AiProperties is a record — Mockito @InjectMocks cannot supply it, so it is
+    // constructed for real (same pattern as InterviewAgentTest/MentorAgentTest).
+    private final AiProperties aiProperties = new AiProperties(
+        AiProvider.OLLAMA,
+        120,
+        new AiProperties.GeminiConfig("gemini-flash-lite-latest", "http://test", "key"),
+        new AiProperties.OptionsConfig(0.7f, 800, 0.3f, 500, 0.7f, 1000),
+        new AiProperties.QuizOptions(0.7f, 1000),
+        new AiProperties.CodeOptions(0.7f, 1000, 0.3f, 800),
+        new AiProperties.CurriculumOptions(0.5f, 1000),
+        new AiProperties.DrillOptions(0.7f, 800, 0.3f, 500, 0.5f, 700)
+    );
+
+    CurriculumService curriculumService;
+
+    @BeforeEach
+    void setUp() {
+        curriculumService = new CurriculumService(
+            assessmentService, promptBuilder, aiProviderFactory, objectMapper, aiProperties
+        );
+    }
 
     private static final UUID USER_ID = UUID.randomUUID();
 

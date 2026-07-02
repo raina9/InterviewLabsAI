@@ -62,6 +62,37 @@ Controller
    or expired token clears the cookie and continues unauthenticated (never throws) —
    protected endpoints are still gated by `authorizeHttpRequests`, not by this filter.
 
+## Filter Bean Registration (2026-07-02 fix — G13 follow-on)
+
+"Only one of the two filters is ever registered" (above) was, until this fix, only true
+for Spring Security's own `SecurityFilterChain` — not for the servlet container. Before
+this session, `SecurityConfig.jwtAuthFilter()` and `.devTokenFilter()` were both plain
+`@Bean` methods. Spring Boot auto-registers *any* bean implementing `jakarta.servlet.Filter`
+(both extend `OncePerRequestFilter`) as a generic servlet-container filter — a mechanism
+completely separate from, and unaware of, the conditional `addFilterBefore(...)` call
+inside `securityFilterChain()`. The practical effect: `JwtAuthFilter` ran on **every**
+request in the running instance regardless of `AUTH_MODE`, in addition to whichever filter
+Spring Security's chain actually selected for that mode.
+
+This was invisible until `AuthControllerTest`'s `logout_clearsCookieAndReturns204` test
+(which deliberately attaches a `jwt` cookie to exercise cookie-clearing) started actually
+reaching the filter chain (G9's fix let the test class bootstrap at all) — the raw
+auto-registered `JwtAuthFilter` picked up that cookie in **dev mode**, called
+`jwtService.verifyToken()`, and NPE'd (`JwtAuthFilter.java:57`, `principal.email()`) because
+the token wasn't a real signed JWT. In production this is a live bug: any dev-mode request
+carrying a stale or forged `jwt` cookie hits `JwtAuthFilter` even though dev mode is
+supposed to run `DevTokenFilter` only.
+
+**Fix**: removed `@Bean` from both `jwtAuthFilter()` and `devTokenFilter()` — they are now
+plain private factory methods, only reachable through the single conditional
+`addFilterBefore(...)` call in `securityFilterChain()`. Neither is a managed Spring bean
+anymore, so Spring Boot's generic filter auto-registration no longer sees them.
+
+**Rule for future filter beans**: a filter meant to run only inside
+`HttpSecurity.addFilterBefore/After/At(...)` must **not** also be a `@Bean` — declare it as
+a plain (non-`@Bean`) factory method, or Spring Boot's servlet-filter auto-configuration
+will register it a second time, unconditionally, on every request.
+
 ## Where `AuthProperties` Binds
 
 `AuthProperties.java` (`src/main/java/com/interviewlab/auth/AuthProperties.java`) is a
