@@ -80,3 +80,6 @@ session-notes/
 
 # Mentorship notes — internal interview-prep material, not for the public repo
 docs/mentorship/
+
+# ForgeKit generated audit docs — internal, unverified accuracy, not for the public repo
+docs/forgekit/
