@@ -88,6 +88,10 @@ Response 200:
 }
 ```
 `psychologyNudge` is `null` unless the current answer is the 3rd, 6th, 9th... scored answer.
+`sessionComplete` is `true` once the answered-question count reaches the session's
+`totalQuestions` — the session is transitioned to `COMPLETED` server-side in the same call (same
+transition + `session.completed` event as `POST /api/v1/sessions/{id}/complete`), so the
+frontend does not need to call Finish separately when this fires.
 
 ### GET /api/v1/interview/{sessionId}/feedback
 Retrieve all scored feedback for a session.  

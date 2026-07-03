@@ -29,6 +29,7 @@ import static org.mockito.Mockito.*;
 class InterviewServiceTest {
 
     @Mock SessionRepository        sessionRepository;
+    @Mock SessionService           sessionService;
     @Mock MessageService           messageService;
     @Mock AnswerFeedbackRepository answerFeedbackRepository;
     @Mock InterviewAgent           interviewAgent;
@@ -150,6 +151,33 @@ class InterviewServiceTest {
 
         verify(answerFeedbackRepository).save(any(AnswerFeedback.class));
         verify(eventPublisher).publishAnswerScored(SESSION_ID, MESSAGE_ID);
+        verify(sessionService, never()).completeSession(any(), any());
+    }
+
+    @Test
+    void respond_finalQuestionOfTotal_autoCompletesSession() {
+        when(sessionRepository.findById(SESSION_ID)).thenReturn(Optional.of(activeSession()));
+
+        Message lastQuestion = new Message(SESSION_ID, MessageRole.INTERVIEWER, "Explain GC", 1, false);
+        when(messageService.getSessionMessages(SESSION_ID)).thenReturn(List.of(lastQuestion));
+
+        InterviewTurnResult turnResult = new InterviewTurnResult("Closing remarks.", true, 3, MESSAGE_ID);
+        when(interviewAgent.nextTurn(USER_ID, SESSION_ID, "My final answer", false)).thenReturn(turnResult);
+
+        MentorFeedback feedback = sampleFeedback();
+        when(mentorAgent.analyze(SESSION_ID, MESSAGE_ID, "Explain GC", "My final answer")).thenReturn(feedback);
+
+        AnswerFeedback savedFeedback = new AnswerFeedback(
+            SESSION_ID, MESSAGE_ID, "Explain GC", "My final answer",
+            feedback.refinedAnswer(), feedback.modelAnswer(), feedback.score(),
+            feedback.feedbackGood(), feedback.feedbackImprove(), feedback.psychologyNote()
+        );
+        when(answerFeedbackRepository.save(any(AnswerFeedback.class))).thenReturn(savedFeedback);
+
+        InterviewTurnResponse response = interviewService.respond(USER_ID, SESSION_ID, "My final answer", false);
+
+        assertThat(response.sessionComplete()).isTrue();
+        verify(sessionService).completeSession(SESSION_ID, USER_ID);
     }
 
     @Test

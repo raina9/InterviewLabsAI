@@ -17,6 +17,7 @@ import com.interviewlab.session.MessageService;
 import com.interviewlab.session.Session;
 import com.interviewlab.session.SessionException;
 import com.interviewlab.session.SessionRepository;
+import com.interviewlab.session.SessionService;
 import com.interviewlab.session.SessionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ import java.util.UUID;
 public class InterviewService {
 
     private final SessionRepository        sessionRepository;
+    private final SessionService           sessionService;
     private final MessageService           messageService;
     private final AnswerFeedbackRepository answerFeedbackRepository;
     private final InterviewAgent           interviewAgent;
@@ -97,6 +99,14 @@ public class InterviewService {
 
         // Psychology nudge — surfaced every 3rd answer in the session.
         PsychologyInsight nudge = computeNudge(sessionId);
+
+        // Auto-completion: the candidate has now answered agentProperties.totalQuestions()
+        // questions. Reuses the same status transition + session.completed event as the
+        // manual Finish button (SessionController POST /{id}/complete) — completion is not
+        // frontend-dependent either way.
+        if (turnResult.shouldMoveToNextQuestion()) {
+            sessionService.completeSession(sessionId, userId);
+        }
 
         return new InterviewTurnResponse(
             turnResult.agentResponse(),

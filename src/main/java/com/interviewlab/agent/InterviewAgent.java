@@ -18,7 +18,9 @@ import java.util.UUID;
 /**
  * Interview flow agent — question generation and session turn management ONLY.
  * Does NOT evaluate answers or generate feedback (MentorAgent responsibility).
- * V1: always returns a follow-up question; shouldMoveToNextQuestion=false.
+ * shouldMoveToNextQuestion=true once the candidate has answered agentProperties
+ * .totalQuestions() questions — InterviewService.respond() reads this to trigger
+ * session auto-completion (see docs/forgekit/AppFlow.md interview-loop flow).
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class InterviewAgent {
     private final SessionRepository          sessionRepository;
     private final MessageService             messageService;
     private final AiProperties               aiProperties;
+    private final AgentProperties            agentProperties;
 
     public String initSession(UUID userId, UUID sessionId) {
         Session session = findSessionOrThrow(sessionId);
@@ -70,8 +73,10 @@ public class InterviewAgent {
 
         messageService.addMessage(sessionId, MessageRole.INTERVIEWER, agentResponse, false);
 
-        log.debug("InterviewAgent turn: sessionId={} questionNumber={}", sessionId, questionNumber);
-        return new InterviewTurnResult(agentResponse, false, questionNumber, candidateMessage.getId());
+        boolean sessionComplete = questionNumber >= agentProperties.totalQuestions();
+        log.debug("InterviewAgent turn: sessionId={} questionNumber={} sessionComplete={}",
+            sessionId, questionNumber, sessionComplete);
+        return new InterviewTurnResult(agentResponse, sessionComplete, questionNumber, candidateMessage.getId());
     }
 
     private AIOptions questionsOptions() {
