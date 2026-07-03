@@ -281,10 +281,12 @@ Response 500: ENGLISH_ANALYSIS_FAILED
 
 ## Voice
 
-### POST /api/v1/voice/transcribe
-Transcribe an audio recording to text (server-side STT — future).  
-Request: multipart/form-data `audio` file.  
-Response 200: `{ "transcript": "..." }`
+### POST /api/v1/voice/transcript
+Submit a speech-to-text transcript — delegates to the same turn-processing flow as
+`POST /api/v1/interview/{sessionId}/respond`, with `voiceUsed` always `true`.  
+Request: `{ "sessionId": UUID, "transcript": "..." }`  
+Response 200: same shape as `POST /api/v1/interview/{sessionId}/respond` —
+`{ "agentResponse", "sessionComplete", "mentorFeedback", "psychologyNudge" }`
 
 ---
 

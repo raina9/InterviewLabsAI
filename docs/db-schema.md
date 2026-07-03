@@ -103,7 +103,7 @@ CREATE TABLE messages (
     role        VARCHAR(20) NOT NULL,
     content     TEXT NOT NULL,
     sequence    INTEGER NOT NULL,
-    voice_used  BOOLEAN NOT NULL DEFAULT FALSE,
+    voice_used  BOOLEAN NOT NULL,                        -- no DB default; always set explicitly by the caller (MessageService.addMessage)
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     UNIQUE (session_id, sequence)
@@ -119,7 +119,7 @@ CREATE INDEX idx_messages_session_id ON messages(session_id);
 | role | VARCHAR(20) | INTERVIEWER or CANDIDATE |
 | content | TEXT | The message text |
 | sequence | INTEGER | Turn number within the session — enforces ordering, prevents duplicates |
-| voice_used | BOOLEAN | True if candidate submitted via voice transcription |
+| voice_used | BOOLEAN | True if candidate submitted via voice transcription — no DB-level default, always set explicitly at insert |
 | created_at | TIMESTAMPTZ | Insertion time |
 
 ---
