@@ -26,6 +26,8 @@ Risk level key: **LOW** (solid, demonstrated, defensible) · **MEDIUM** (underst
 | GlobalExceptionHandler / structured error responses | Yes — `ApiError`, `ErrorCode` enums per domain, standard structure across all controllers | Yes | Yes | LOW |
 | Role-based authorization (`@PreAuthorize`, `hasRole`) | **No** — no role model exists at all | Can describe how it *would* be added | Partial | MEDIUM |
 | Spring Kafka (real consumer/producer, not just config) | Seam only — `SyncEventPublisher` is the only running implementation | Yes, can describe intended design | No — never run a live consumer | HIGH |
+| Spring Boot filter auto-registration vs security chain | Yes — found and fixed live: `@Bean`-declared `jwtAuthFilter()`/`devTokenFilter()` were double-registered (servlet container + security chain) — [[mentorship/session-learnings]] "The Masked Bug Chain" | Yes | Yes | LOW |
+| `@WebMvcTest` slices + `@ConfigurationProperties` binding | Yes — `@EnableConfigurationProperties` on a slice-imported `@Configuration` class vs relying on `@ConfigurationPropertiesScan` — `docs/lld/auth-flow.md` | Yes | Yes | LOW |
 
 ## Distributed Systems
 
