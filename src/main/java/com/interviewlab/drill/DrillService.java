@@ -6,6 +6,8 @@ import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
 import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
+import com.interviewlab.sessionstore.SessionStore;
+import com.interviewlab.sessionstore.SessionTtlProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,19 +17,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class DrillService {
 
-    private final AIProviderFactory aiProviderFactory;
-    private final ObjectMapper      objectMapper;
-    private final AiProperties      aiProperties;
-    private final DrillProperties   drillProperties;
+    private static final String KEY_PREFIX = "drill:";
 
-    private final Map<UUID, DrillSessionState> sessions = new ConcurrentHashMap<>();
+    private final AIProviderFactory     aiProviderFactory;
+    private final ObjectMapper          objectMapper;
+    private final AiProperties          aiProperties;
+    private final DrillProperties       drillProperties;
+    private final SessionStore          sessionStore;
+    private final SessionTtlProperties  sessionTtlProperties;
 
     public DrillSession startDrill(DrillRequest request) {
         List<String> rapidQuestions = new ArrayList<>();
@@ -45,7 +48,7 @@ public class DrillService {
             sessionId, request.topic(), request.mode(), rapidQuestions, firstQuestion,
             drillProperties.rapidQuestionLimit(), drillProperties.deepTurnLimit()
         );
-        sessions.put(sessionId, state);
+        sessionStore.put(key(sessionId), state, sessionTtlProperties.drill());
         log.info("Drill started: sessionId={} topic={} mode={}", sessionId, request.topic(), request.mode());
 
         return toSession(state);
@@ -76,6 +79,7 @@ public class DrillService {
         }
 
         state.advanceTo(nextQuestion);
+        sessionStore.put(key(sessionId), state, sessionTtlProperties.drill());
 
         return new DrillQuestionResponse(
             nextQuestion,
@@ -103,7 +107,7 @@ public class DrillService {
             .toList();
 
         log.info("Drill summary: sessionId={} answered={} avg={}", sessionId, history.size(), avg);
-        sessions.remove(sessionId);
+        sessionStore.delete(key(sessionId));
         return new DrillSummary(
             state.getTopic(), state.getMode(),
             history.size(), avg, weakSpots, strongPoints
@@ -118,7 +122,7 @@ public class DrillService {
     }
 
     private DrillSessionState findSessionOrThrow(UUID sessionId) {
-        DrillSessionState state = sessions.get(sessionId);
+        DrillSessionState state = sessionStore.get(key(sessionId), DrillSessionState.class);
         if (state == null) {
             throw new DrillException(
                 ErrorCode.DRILL_SESSION_NOT_FOUND,
@@ -127,6 +131,10 @@ public class DrillService {
             );
         }
         return state;
+    }
+
+    private String key(UUID sessionId) {
+        return KEY_PREFIX + sessionId;
     }
 
     private List<String> generateRapidQuestions(String topic) {

@@ -9,6 +9,7 @@ import com.interviewlab.drill.DrillException;
 import com.interviewlab.quiz.QuizException;
 import com.interviewlab.interview.InterviewException;
 import com.interviewlab.profile.ProfileException;
+import com.interviewlab.ratelimit.RateLimitException;
 import com.interviewlab.session.SessionException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -103,6 +104,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DrillException.class)
     public ResponseEntity<ApiError> handleDrillException(DrillException ex) {
         log.warn("Drill error: code={} message={}", ex.errorCode(), ex.getMessage());
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ApiError> handleRateLimitException(RateLimitException ex) {
+        log.warn("Rate limit error: code={} message={}", ex.errorCode(), ex.getMessage());
         return ResponseEntity
                 .status(ex.status())
                 .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));

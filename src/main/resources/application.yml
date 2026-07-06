@@ -155,6 +155,25 @@ spring:
       sasl.jaas.config: ${KAFKA_SASL_JAAS_CONFIG:}
 
   # ---------------------------------------------------------------------------
+  # Redis — Swappable Backend Pattern (session store only, opt-in)
+  # Default (SESSION_STORE=memory or unset): this block is inert — no connection attempted.
+  # Spring Boot's own Redis auto-configuration is excluded below (see spring.autoconfigure.exclude) —
+  # RedisConfig builds the connection factory itself, only when app.session.store=redis, so an empty
+  # REDIS_URL never trips Spring Boot's own eager Redis health-indicator bean at context startup.
+  # Prod: Upstash Redis (managed, free tier) or self-hosted / Docker.
+  # AWS equivalent: ElastiCache for Redis — REDIS_URL points at the endpoint, zero code change.
+  # ---------------------------------------------------------------------------
+  data:
+    redis:
+      url: ${REDIS_URL:}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.health.DataRedisHealthContributorAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.health.DataRedisReactiveHealthContributorAutoConfiguration
+
+  # ---------------------------------------------------------------------------
   # Spring MVC — async request timeout
   # Safety net for async controllers (Callable / DeferredResult).
   # Current controllers are synchronous (virtual threads); guards future async additions.
@@ -168,6 +187,15 @@ spring:
 # Interview Lab Application Properties
 # =============================================================================
 app:
+
+  # ---------------------------------------------------------------------------
+  # Deployment — personal (single user, relaxed) | production (multi-user/multi-instance)
+  # DeploymentModeValidator enforces hard prerequisites for production at startup:
+  # AUTH_MODE must be oauth (not dev) and REDIS_URL must be configured. AI_PROVIDER=ollama
+  # is allowed in production but logged as a warning (every pod must reach a running Ollama).
+  # ---------------------------------------------------------------------------
+  deployment:
+    mode: ${DEPLOYMENT_MODE:personal}
 
   # ---------------------------------------------------------------------------
   # Auth — mode-switched: dev (X-Dev-Token) | oauth (Google OAuth2 + JWT cookie)
@@ -276,8 +304,8 @@ app:
     #   model: ${OPENAI_MODEL:gpt-4o}
 
   # ---------------------------------------------------------------------------
-  # Rate Limiting — per user, sliding window
-  # Enforcement: in-memory (V1 personal) | Redis (V2 public/embedded)
+  # Rate Limiting — per user, fixed window (see RateLimitService, ADR-010)
+  # Enforcement: SessionStore-backed — memory (V1 personal) | Redis (multi-instance/production)
   # ---------------------------------------------------------------------------
   rate-limit:
     # Max interview interactions per user per day
@@ -309,6 +337,15 @@ app:
   session:
     # Initial session state on creation — service reads this, entity has no default
     default-status: ${SESSION_DEFAULT_STATUS:ACTIVE}
+    # Ephemeral state store — Swappable Backend Pattern (see sessionstore/package-info.java)
+    # memory (default): InMemorySessionStore, single-instance only, zero infra
+    # redis: RedisSessionStore, multi-instance safe — set SESSION_STORE=redis + REDIS_URL
+    store: ${SESSION_STORE:memory}
+    # TTL for quiz/drill/code challenge state held in SessionStore before lazy expiry
+    ttl-hours:
+      quiz:  ${QUIZ_TTL_HOURS:2}
+      drill: ${DRILL_TTL_HOURS:2}
+      code:  ${CODE_TTL_HOURS:4}
 
   message:
     # Voice input/output flag for new messages — false until voice module is active

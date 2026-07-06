@@ -6,6 +6,8 @@ import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
 import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
+import com.interviewlab.sessionstore.SessionStore;
+import com.interviewlab.sessionstore.SessionTtlProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -14,24 +16,25 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class QuizService {
 
-    private final AIProviderFactory aiProviderFactory;
-    private final ObjectMapper      objectMapper;
-    private final AiProperties      aiProperties;
+    private static final String KEY_PREFIX = "quiz:";
 
-    private final Map<UUID, QuizSessionState> sessions = new ConcurrentHashMap<>();
+    private final AIProviderFactory     aiProviderFactory;
+    private final ObjectMapper          objectMapper;
+    private final AiProperties          aiProperties;
+    private final SessionStore          sessionStore;
+    private final SessionTtlProperties  sessionTtlProperties;
 
     public QuizSession startQuiz(StartQuizRequest request) {
         List<QuizQuestion> questions = generateQuestions(request.topic(), request.difficulty(), request.questionCount());
         UUID sessionId = UUID.randomUUID();
         QuizSessionState state = new QuizSessionState(sessionId, request.topic(), request.difficulty(), questions);
-        sessions.put(sessionId, state);
+        sessionStore.put(key(sessionId), state, sessionTtlProperties.quiz());
         log.info("Quiz started: sessionId={} topic={} count={}", sessionId, request.topic(), questions.size());
 
         QuizQuestion first = state.currentQuestion();
@@ -55,6 +58,7 @@ public class QuizService {
         QuizQuestion current = state.currentQuestion();
         boolean correct = current.correctAnswer().equalsIgnoreCase(answer.trim());
         state.advance(correct);
+        sessionStore.put(key(sessionId), state, sessionTtlProperties.quiz());
         log.debug("Quiz answer: sessionId={} correct={} score={}", sessionId, correct, state.getScore());
 
         QuizQuestion next = state.currentQuestion();
@@ -83,12 +87,12 @@ public class QuizService {
         int correct = state.getScore();
         int percent = total > 0 ? (correct * 100 / total) : 0;
         log.info("Quiz result: sessionId={} correct={}/{} score={}%", sessionId, correct, total, percent);
-        sessions.remove(sessionId);
+        sessionStore.delete(key(sessionId));
         return new QuizResult(total, correct, percent, Map.of(state.getTopic(), correct));
     }
 
     private QuizSessionState findSessionOrThrow(UUID sessionId) {
-        QuizSessionState state = sessions.get(sessionId);
+        QuizSessionState state = sessionStore.get(key(sessionId), QuizSessionState.class);
         if (state == null) {
             throw new QuizException(
                 ErrorCode.QUIZ_SESSION_NOT_FOUND,
@@ -97,6 +101,10 @@ public class QuizService {
             );
         }
         return state;
+    }
+
+    private String key(UUID sessionId) {
+        return KEY_PREFIX + sessionId;
     }
 
     private List<QuizQuestion> generateQuestions(String topic, String difficulty, int count) {

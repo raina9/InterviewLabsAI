@@ -7,6 +7,8 @@ import com.interviewlab.ai.AiProperties;
 import com.interviewlab.ai.AiProvider;
 import com.interviewlab.ai.AiProviderStrategy;
 import com.interviewlab.auth.ErrorCode;
+import com.interviewlab.sessionstore.InMemorySessionStore;
+import com.interviewlab.sessionstore.SessionTtlProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,11 +46,16 @@ class QuizServiceTest {
         new AiProperties.DrillOptions(0.7f, 800, 0.3f, 500, 0.5f, 700)
     );
 
+    // SessionStore/SessionTtlProperties are constructed for real — InMemorySessionStore
+    // needs no mocking (same rationale as the AiProperties record above).
+    private final InMemorySessionStore sessionStore        = new InMemorySessionStore();
+    private final SessionTtlProperties sessionTtlProperties = new SessionTtlProperties(2, 2, 4);
+
     QuizService quizService;
 
     @BeforeEach
     void setUp() {
-        quizService = new QuizService(aiProviderFactory, objectMapper, aiProperties);
+        quizService = new QuizService(aiProviderFactory, objectMapper, aiProperties, sessionStore, sessionTtlProperties);
     }
 
     private static final String VALID_QUESTIONS_JSON = """

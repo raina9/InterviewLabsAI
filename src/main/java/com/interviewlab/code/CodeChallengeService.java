@@ -5,6 +5,8 @@ import com.interviewlab.ai.AIOptions;
 import com.interviewlab.ai.AIProviderFactory;
 import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
+import com.interviewlab.sessionstore.SessionStore;
+import com.interviewlab.sessionstore.SessionTtlProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -13,12 +15,13 @@ import org.springframework.web.client.RestClient;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class CodeChallengeService {
+
+    private static final String KEY_PREFIX = "code:";
 
     private static final Map<String, Integer> LANGUAGE_IDS = Map.of(
         "java",       62,
@@ -26,13 +29,13 @@ public class CodeChallengeService {
         "javascript", 63
     );
 
-    private final AIProviderFactory aiProviderFactory;
-    private final Judge0Properties  judge0Properties;
-    private final ObjectMapper      objectMapper;
-    private final RestClient.Builder restClientBuilder;
-    private final AiProperties      aiProperties;
-
-    private final Map<UUID, CodeChallenge> challenges = new ConcurrentHashMap<>();
+    private final AIProviderFactory     aiProviderFactory;
+    private final Judge0Properties      judge0Properties;
+    private final ObjectMapper          objectMapper;
+    private final RestClient.Builder    restClientBuilder;
+    private final AiProperties          aiProperties;
+    private final SessionStore          sessionStore;
+    private final SessionTtlProperties  sessionTtlProperties;
 
     public CodeChallenge generateChallenge(CodeChallengeRequest request) {
         String prompt = buildChallengePrompt(request.topic(), request.difficulty());
@@ -48,7 +51,7 @@ public class CodeChallengeService {
                 partial.testCases(),
                 partial.constraints()
             );
-            challenges.put(challenge.id(), challenge);
+            sessionStore.put(key(challenge.id()), challenge, sessionTtlProperties.code());
             log.info("Code challenge generated: id={} topic={}", challenge.id(), request.topic());
             return challenge;
         } catch (Exception e) {
@@ -62,7 +65,7 @@ public class CodeChallengeService {
     }
 
     public CodeSubmitResponse submitSolution(CodeSubmitRequest request) {
-        CodeChallenge challenge = challenges.get(request.challengeId());
+        CodeChallenge challenge = sessionStore.get(key(request.challengeId()), CodeChallenge.class);
         if (challenge == null) {
             throw new CodeChallengeException(
                 ErrorCode.CODE_CHALLENGE_NOT_FOUND,
@@ -92,7 +95,7 @@ public class CodeChallengeService {
     }
 
     public String getHint(UUID challengeId) {
-        CodeChallenge challenge = challenges.get(challengeId);
+        CodeChallenge challenge = sessionStore.get(key(challengeId), CodeChallenge.class);
         if (challenge == null) {
             throw new CodeChallengeException(
                 ErrorCode.CODE_CHALLENGE_NOT_FOUND,
@@ -233,5 +236,9 @@ public class CodeChallengeService {
             );
         }
         return raw.substring(start, end + 1);
+    }
+
+    private String key(UUID challengeId) {
+        return KEY_PREFIX + challengeId;
     }
 }

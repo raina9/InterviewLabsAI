@@ -7,6 +7,8 @@ import com.interviewlab.ai.AiProperties;
 import com.interviewlab.ai.AiProvider;
 import com.interviewlab.ai.AiProviderStrategy;
 import com.interviewlab.auth.ErrorCode;
+import com.interviewlab.sessionstore.InMemorySessionStore;
+import com.interviewlab.sessionstore.SessionTtlProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,12 +48,18 @@ class CodeChallengeServiceTest {
         new AiProperties.DrillOptions(0.7f, 800, 0.3f, 500, 0.5f, 700)
     );
 
+    // SessionStore/SessionTtlProperties are constructed for real — InMemorySessionStore
+    // needs no mocking (same rationale as the AiProperties record above).
+    private final InMemorySessionStore sessionStore        = new InMemorySessionStore();
+    private final SessionTtlProperties sessionTtlProperties = new SessionTtlProperties(2, 2, 4);
+
     CodeChallengeService codeChallengeService;
 
     @BeforeEach
     void setUp() {
         codeChallengeService = new CodeChallengeService(
-            aiProviderFactory, judge0Properties, objectMapper, restClientBuilder, aiProperties
+            aiProviderFactory, judge0Properties, objectMapper, restClientBuilder, aiProperties,
+            sessionStore, sessionTtlProperties
         );
     }
 

@@ -166,6 +166,22 @@
         </dependency>
 
         <!-- ===================================================================
+             SESSION STORE — Redis (OSS active, opt-in via SESSION_STORE=redis)
+             Default (zero-config): InMemorySessionStore — no Redis connection attempted.
+             Prod: Upstash Redis (managed, free tier) or self-hosted Redis/Docker.
+             AWS equivalent: RedisSessionStore → ElastiCache for Redis (plug-in ready,
+             zero code change — just point REDIS_URL at the ElastiCache endpoint).
+             =================================================================== -->
+
+        <!-- Spring Data Redis + Lettuce client — RedisTemplate wiring lives in
+             config/RedisConfig.java (GenericJackson2JsonRedisSerializer only, never JDK
+             serialization). Dormant unless SESSION_STORE=redis is set. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- ===================================================================
              SECURITY — JWT (JJWT 0.12.x)
              =================================================================== -->
 
@@ -285,7 +301,13 @@
         -->
 
         <!--
-        AWS SQS — async event messaging. Active OSS equivalent: Spring Kafka (SQSMessagePublisher interface).
+        AWS SQS — messaging alternative (MESSAGING_MODE=sqs when implemented).
+        Active OSS equivalent: Spring Kafka (SQSMessagePublisher interface).
+        Activation steps:
+          1. Uncomment this dependency and the aws.sdk.version property + AWS SDK BOM above.
+          2. Implement SQSMessagePublisher implementing EventPublisher (see event/EventPublisher.java).
+          3. Annotate with @Component @ConditionalOnProperty(name="app.messaging.mode", havingValue="sqs").
+          4. Set MESSAGING_MODE=sqs, AWS_SQS_QUEUE_URL, AWS_REGION, and AWS credentials in environment.
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>sqs</artifactId>
@@ -298,6 +320,27 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>cloudwatchlogs</artifactId>
         </dependency>
+        -->
+
+        <!--
+        AWS ElastiCache for Redis — Redis swap path for RedisSessionStore.
+        Active OSS equivalent: self-hosted Redis / Upstash Redis (spring-boot-starter-data-redis, active above).
+        Activation steps:
+          1. No new dependency needed — spring-boot-starter-data-redis already includes the Lettuce client
+             that ElastiCache (a Redis-protocol-compatible endpoint) speaks natively.
+          2. Set SESSION_STORE=redis and REDIS_URL to the ElastiCache primary endpoint (rediss:// for
+             in-transit encryption if enabled on the cluster).
+          3. Zero code change — RedisSessionStore and RedisConfig are already wired (see sessionstore/package-info.java).
+        -->
+
+        <!--
+        AWS RDS — PostgreSQL swap path. Active OSS equivalent: Supabase (hosted) / Docker (local).
+        Activation steps:
+          1. No new dependency needed — the active org.postgresql:postgresql driver speaks RDS PostgreSQL natively.
+          2. Set DB_URL to the RDS instance endpoint (e.g. jdbc:postgresql://<rds-endpoint>:5432/interviewlab).
+          3. For IAM auth instead of password auth, add software.amazon.awssdk:rds (IAM token generation) —
+             not required for password-based RDS connections, which need no code change.
+          4. Zero code change for the password-auth path — DataSource config (application.yml) is the only edit.
         -->
 
         <!--

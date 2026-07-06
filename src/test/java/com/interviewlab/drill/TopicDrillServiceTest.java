@@ -7,6 +7,8 @@ import com.interviewlab.ai.AiProperties;
 import com.interviewlab.ai.AiProvider;
 import com.interviewlab.ai.AiProviderStrategy;
 import com.interviewlab.auth.ErrorCode;
+import com.interviewlab.sessionstore.InMemorySessionStore;
+import com.interviewlab.sessionstore.SessionTtlProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,11 +47,18 @@ class TopicDrillServiceTest {
     );
     private final DrillProperties drillProperties = new DrillProperties(10, 8);
 
+    // SessionStore/SessionTtlProperties are constructed for real — InMemorySessionStore
+    // needs no mocking (same rationale as the AiProperties record above).
+    private final InMemorySessionStore sessionStore        = new InMemorySessionStore();
+    private final SessionTtlProperties sessionTtlProperties = new SessionTtlProperties(2, 2, 4);
+
     DrillService drillService;
 
     @BeforeEach
     void setUp() {
-        drillService = new DrillService(aiProviderFactory, objectMapper, aiProperties, drillProperties);
+        drillService = new DrillService(
+            aiProviderFactory, objectMapper, aiProperties, drillProperties, sessionStore, sessionTtlProperties
+        );
     }
 
     private static final String RAPID_QUESTIONS_JSON = """
