@@ -57,8 +57,8 @@
     <!-- Babel standalone 7.23.5 — JSX transformation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
-    <!-- Monaco Editor AMD loader — loaded sync so CodeEditor can require(['vs/editor/editor.main']) on demand -->
-    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+    <!-- Monaco Editor AMD loader is NOT loaded here — CodeEditor.jsx injects it dynamically
+         on first mount (G3 fix). Users who never open Code Challenge never download it. -->
 
     <!-- Auth pre-check: sends dev token, populates window.__user before React mounts -->
     <script>

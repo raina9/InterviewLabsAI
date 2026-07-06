@@ -126,10 +126,10 @@ function IntakeForm({ user, onSessionStarted }) {
                 {/* Interview type + Experience */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                        <label htmlFor="interviewType" className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
                             Interview Type
                         </label>
-                        <select name="interviewType" value={form.interviewType} onChange={handleChange}
+                        <select id="interviewType" name="interviewType" value={form.interviewType} onChange={handleChange}
                             className={inputNormal + ' cursor-pointer'}>
                             {interviewTypes.map(t => (
                                 <option key={t.value} value={t.value} style={{ background: '#13161B' }}>
@@ -139,10 +139,10 @@ function IntakeForm({ user, onSessionStarted }) {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                        <label htmlFor="experienceYears" className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
                             Experience (years)
                         </label>
-                        <input type="number" name="experienceYears" value={form.experienceYears}
+                        <input id="experienceYears" type="number" name="experienceYears" value={form.experienceYears}
                             onChange={handleChange} min="0" max="40" placeholder="e.g. 3"
                             className={inputNormal} />
                     </div>
@@ -150,10 +150,10 @@ function IntakeForm({ user, onSessionStarted }) {
 
                 {/* Target role */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                    <label htmlFor="targetRole" className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
                         Target Role <span className="text-accent normal-case tracking-normal font-normal">*</span>
                     </label>
-                    <input type="text" name="targetRole" value={form.targetRole} onChange={handleChange}
+                    <input id="targetRole" type="text" name="targetRole" value={form.targetRole} onChange={handleChange}
                         placeholder="e.g. Senior Backend Engineer"
                         className={errors.targetRole ? inputError : inputNormal} />
                     {errors.targetRole && (
@@ -163,20 +163,20 @@ function IntakeForm({ user, onSessionStarted }) {
 
                 {/* Company */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                    <label htmlFor="targetCompany" className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
                         Company <span className="text-gray-600 normal-case tracking-normal font-normal">(optional)</span>
                     </label>
-                    <input type="text" name="targetCompany" value={form.targetCompany} onChange={handleChange}
+                    <input id="targetCompany" type="text" name="targetCompany" value={form.targetCompany} onChange={handleChange}
                         placeholder="e.g. Google"
                         className={inputNormal} />
                 </div>
 
                 {/* Job Description */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                    <label htmlFor="jdText" className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
                         Job Description <span className="text-accent normal-case tracking-normal font-normal">*</span>
                     </label>
-                    <textarea name="jdText" value={form.jdText} onChange={handleChange} rows={5}
+                    <textarea id="jdText" name="jdText" value={form.jdText} onChange={handleChange} rows={5}
                         placeholder="Paste the job description here…"
                         className={`${errors.jdText ? inputError : inputNormal} font-mono resize-none`} />
                     {errors.jdText && (
@@ -186,20 +186,20 @@ function IntakeForm({ user, onSessionStarted }) {
 
                 {/* Topic focus */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                    <label htmlFor="topicFocus" className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
                         Topic Focus <span className="text-gray-600 normal-case tracking-normal font-normal">(optional)</span>
                     </label>
-                    <input type="text" name="topicFocus" value={form.topicFocus} onChange={handleChange}
+                    <input id="topicFocus" type="text" name="topicFocus" value={form.topicFocus} onChange={handleChange}
                         placeholder="e.g. Kafka, System Design, Spring Boot"
                         className={inputNormal} />
                 </div>
 
                 {/* Custom instruction */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                    <label htmlFor="customPrompt" className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
                         Custom Instruction <span className="text-gray-600 normal-case tracking-normal font-normal">(optional — saved to profile)</span>
                     </label>
-                    <textarea name="customPrompt" value={form.customPrompt} onChange={handleChange} rows={2}
+                    <textarea id="customPrompt" name="customPrompt" value={form.customPrompt} onChange={handleChange} rows={2}
                         placeholder="e.g. Focus on distributed systems. Push back on vague answers."
                         className={`${inputNormal} font-mono resize-none`} />
                 </div>

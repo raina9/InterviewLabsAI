@@ -11,4 +11,7 @@ public interface ProficiencyRepository extends JpaRepository<Proficiency, UUID> 
     Optional<Proficiency> findByUserIdAndTopic(UUID userId, String topic);
 
     List<Proficiency> findByUserId(UUID userId);
+
+    // Account deletion cascade (see UserAccountService)
+    void deleteByUserId(UUID userId);
 }

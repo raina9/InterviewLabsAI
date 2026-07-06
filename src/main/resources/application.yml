@@ -358,10 +358,6 @@ app:
       drill: ${DRILL_TTL_HOURS:2}
       code:  ${CODE_TTL_HOURS:4}
 
-  message:
-    # Voice input/output flag for new messages — false until voice module is active
-    default-voice-used: ${MESSAGE_DEFAULT_VOICE_USED:false}
-
   proficiency:
     # Starting score and session count for new proficiency records
     default-score: ${PROFICIENCY_DEFAULT_SCORE:0}

@@ -167,9 +167,23 @@ See [.env.example](.env.example) for the full reference with descriptions.
 
 ## Known Limitations
 
-- **In-memory session stores** — Quiz, Topic Drill, and Code Challenge sessions are held in-memory (`ConcurrentHashMap`). A single-instance deployment loses active sessions on restart. Multi-instance deployments (horizontal scaling, rolling deploys) will drop sessions that land on a different instance. Redis-backed stores are parked and activatable when needed.
+- **In-memory session store is the default** — Quiz, Topic Drill, and Code Challenge sessions (and rate-limit counters) live in a `SessionStore` abstraction that defaults to `ConcurrentHashMap` (`SESSION_STORE=memory`). A single-instance deployment loses active sessions on restart; multi-instance deployments will drop sessions that land on a different instance. Set `SESSION_STORE=redis` + `REDIS_URL` to switch to the Redis-backed implementation — no code change required. See [Capacity & Scaling](#capacity--scaling).
 - **Google OAuth (dev mode)** — The default `AUTH_MODE=dev` bypasses Google login entirely. See [Setting Up Google OAuth](#setting-up-google-oauth-production-mode) for switching to production auth before exposing the app publicly.
-- **No rate limiting persistence** — Rate limit counters are in-memory and reset on restart. Switching to Redis rate limiting requires activating the `app.rate-limit.mode=redis` path (parked, not yet implemented).
+- **Quiz/Drill/Code Challenge sessions aren't user-scoped** — these ephemeral sessions carry no owner/userId check; anyone authenticated who knows a session ID can access it. Low risk at current scale (single-user/personal deployments), but worth knowing before exposing the app to multiple untrusted users.
+
+## Capacity & Scaling
+
+Honest numbers, not aspirational ones — read this before deciding how far to push a deployment.
+
+| Mode | Topology | Session store | AI provider | Fit |
+|------|----------|----------------|-------------|-----|
+| **personal** (default) | Single instance | In-memory (`SESSION_STORE=memory`) | Ollama (local) | Designed for 1 user. Works fine for small demos and local dev — not for concurrent traffic. |
+| **production** | N instances behind a load balancer | Redis (`SESSION_STORE=redis` + `REDIS_URL` required — `DeploymentModeValidator` refuses to start without it) | Hosted provider recommended (Gemini/Claude/OpenAI) | Stateless once Redis-backed — horizontal scaling is supported, not aspirational. |
+
+- **Redis / Upstash free tier** — Upstash's free tier is roughly 10k commands/day. Fine for a demo or pilot; a real user base (1,000+ active users) will need a paid Redis tier (Upstash paid or self-hosted), roughly **~$10/month** at that scale. Fixed-window rate limiting (see ADR-010) deliberately uses one command per request specifically to stretch the free tier as far as possible.
+- **Ollama** — single-process, local, zero cost. Fine for exactly the "1 user, personal mode" case it's designed for. Any concurrent load (more than a couple of simultaneous requests) needs `AI_PROVIDER` switched to a hosted provider (Gemini is the active paid-provider integration) — Ollama does not autoscale.
+- **AI daily budget kill switch** — `AI_DAILY_GLOBAL_LIMIT` (default 1000 calls/day, see ADR-011) caps total AI provider calls across every user and every provider, independent of per-user rate limiting. This is a runaway-cost circuit breaker, not a capacity feature — raise it deliberately, not as a reflex fix for hitting the limit.
+- **Horizontal scaling** — the app is stateless once `SESSION_STORE=redis` is active: N instances behind a load balancer is a supported topology, not a future roadmap item. `DeploymentModeValidator` enforces this precondition at startup in `DEPLOYMENT_MODE=production` (fails fast rather than silently running multi-instance on in-memory state).
 
 ## Contributing
 

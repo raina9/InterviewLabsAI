@@ -7,7 +7,9 @@ import java.util.UUID;
 
 /**
  * Message entity — one transcript entry within a session.
- * voice_used: no hardcoded default — injected from MessageProperties at creation.
+ * voice_used: every caller (text vs voice endpoints) passes this explicitly — there is
+ * no config-level default (app.message.default-voice-used was removed as dead config; it
+ * was never actually read anywhere — see docs/forgekit/TODO.md G14).
  * sequence is 1-based and determines retrieval order via findBySessionIdOrderBySequence.
  * No Lombok: JPA entities benefit from explicit constructor visibility control.
  */

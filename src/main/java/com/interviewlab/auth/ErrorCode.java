@@ -51,7 +51,9 @@ public enum ErrorCode {
     AI_BUDGET_EXHAUSTED("The daily AI usage budget has been reached. Please try again tomorrow."),
 
     FORBIDDEN_ADMIN_ONLY("This action requires administrator privileges."),
-    SYSTEM_FEEDBACK_NOT_FOUND("System feedback record not found.");
+    SYSTEM_FEEDBACK_NOT_FOUND("System feedback record not found."),
+
+    USER_DELETE_FAILED("Failed to delete your account. Please try again or contact support.");
 
     private final String defaultMessage;
 

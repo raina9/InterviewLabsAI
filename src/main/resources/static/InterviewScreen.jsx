@@ -296,8 +296,9 @@ function InterviewScreen({ sessionId, voiceEnabled, firstQuestion, totalQuestion
                     </div>
                 </div>
 
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+                {/* Messages — aria-live announces new interviewer/mentor turns to screen readers */}
+                <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4"
+                    aria-live="polite" aria-relevant="additions">
                     {messages.map((msg, idx) => {
                         if (msg.role === 'MENTOR') {
                             return <MentorBubble key={idx} feedback={msg.feedback} />;

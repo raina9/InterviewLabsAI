@@ -75,8 +75,6 @@ app:
     allowed-origins: http://localhost:3000
   session:
     default-status: ACTIVE
-  message:
-    default-voice-used: false
   proficiency:
     default-score: 0.0
     default-sessions-count: 0

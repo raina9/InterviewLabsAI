@@ -1,5 +1,28 @@
 const React = window.React;
 
+const MONACO_LOADER_URL = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js';
+const MONACO_VS_PATH    = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs';
+
+// Injects the Monaco AMD loader script exactly once per page load (G3 fix — users who
+// never open Code Challenge never download it). window.__monacoLoaderPromise is the
+// window-level flag: a second CodeEditor mount within the same page session reuses the
+// already-resolved promise instead of re-injecting/re-downloading the loader script.
+function loadMonacoLoader() {
+    if (window.monaco) return Promise.resolve();
+    if (window.__monacoLoaderPromise) return window.__monacoLoaderPromise;
+
+    window.__monacoLoaderPromise = new Promise((resolve, reject) => {
+        if (window.require) { resolve(); return; }
+        const script = document.createElement('script');
+        script.src = MONACO_LOADER_URL;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load Monaco editor'));
+        document.body.appendChild(script);
+    });
+    return window.__monacoLoaderPromise;
+}
+
 const LANGUAGES = [
     { id: 'java',       label: 'Java' },
     { id: 'python',     label: 'Python' },
@@ -24,18 +47,28 @@ function CodeEditor() {
     const [loading, setLoading]       = React.useState(false);
     const [hintLoading, setHintLoading] = React.useState(false);
     const [error, setError]           = React.useState(null);
+    const [editorLoading, setEditorLoading] = React.useState(true);
+    const [editorLoadError, setEditorLoadError] = React.useState(null);
 
     const editorContainerRef = React.useRef(null);
     const monacoEditorRef    = React.useRef(null);
     const monacoLoadedRef    = React.useRef(false);
 
-    // Mount Monaco after challenge is shown
+    // Mount Monaco after challenge is shown — loader script + editor module are both
+    // fetched lazily here, not from index.html, so the setup screen never pays for them.
     React.useEffect(() => {
         if (phase !== 'challenge' || !editorContainerRef.current) return;
-        if (monacoLoadedRef.current && monacoEditorRef.current) return;
+        if (monacoLoadedRef.current && monacoEditorRef.current) {
+            setEditorLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        setEditorLoading(true);
+        setEditorLoadError(null);
 
         function mountEditor() {
-            if (!window.monaco) return;
+            if (cancelled || !window.monaco || !editorContainerRef.current) return;
             monacoEditorRef.current = window.monaco.editor.create(editorContainerRef.current, {
                 value:     code,
                 language:  language,
@@ -48,16 +81,21 @@ function CodeEditor() {
                 fontFamily: '"JetBrains Mono", monospace',
             });
             monacoLoadedRef.current = true;
+            setEditorLoading(false);
         }
 
-        if (window.monaco) {
-            mountEditor();
-        } else if (window.require) {
-            window.require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+        function requireEditorModule() {
+            if (window.monaco) { mountEditor(); return; }
+            window.require.config({ paths: { vs: MONACO_VS_PATH } });
             window.require(['vs/editor/editor.main'], mountEditor);
         }
 
+        loadMonacoLoader()
+            .then(() => { if (!cancelled) requireEditorModule(); })
+            .catch(() => { if (!cancelled) { setEditorLoading(false); setEditorLoadError('Failed to load the code editor. Check your connection and retry.'); } });
+
         return () => {
+            cancelled = true;
             if (monacoEditorRef.current) {
                 monacoEditorRef.current.dispose();
                 monacoEditorRef.current = null;
@@ -276,8 +314,20 @@ function CodeEditor() {
 
                 {/* Right panel — Monaco editor + output */}
                 <div className="flex-1 flex flex-col min-w-0">
-                    {/* Monaco editor container */}
-                    <div ref={editorContainerRef} className="flex-1" style={{ minHeight: 0 }} />
+                    {/* Monaco editor container — overlay shown until the editor finishes loading */}
+                    <div className="flex-1 relative" style={{ minHeight: 0 }}>
+                        <div ref={editorContainerRef} className="absolute inset-0" />
+                        {editorLoading && !editorLoadError && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-base">
+                                <span className="text-xs text-gray-500">Loading editor…</span>
+                            </div>
+                        )}
+                        {editorLoadError && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-base">
+                                <span className="text-xs text-red-400">{editorLoadError}</span>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Output panel */}
                     {(result || error) && (
