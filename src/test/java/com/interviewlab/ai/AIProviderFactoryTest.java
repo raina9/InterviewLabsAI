@@ -1,5 +1,6 @@
 package com.interviewlab.ai;
 
+import com.interviewlab.sessionstore.InMemorySessionStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +19,11 @@ class AIProviderFactoryTest {
     @Mock GeminiProvider  geminiProvider;
     @Mock ClaudeProvider  claudeProvider;
     @Mock OpenAIProvider  openAIProvider;
+
+    // Generous limits — never blocks/exhausts in these routing-focused tests.
+    private final AiQueueProperties aiQueueProperties = new AiQueueProperties(100, 30, 100_000);
+    private final AIRequestQueue    aiRequestQueue     = new AIRequestQueue(aiQueueProperties);
+    private final AiBudgetGuard     aiBudgetGuard      = new AiBudgetGuard(new InMemorySessionStore(), aiQueueProperties);
 
     AIProviderFactory factory;
 
@@ -46,35 +52,46 @@ class AIProviderFactoryTest {
     @BeforeEach
     void setUp() {
         factory = new AIProviderFactory(
-            ollamaProvider, geminiProvider, Optional.of(claudeProvider), Optional.of(openAIProvider), aiPropertiesGemini
+            ollamaProvider, geminiProvider, Optional.of(claudeProvider), Optional.of(openAIProvider),
+            aiPropertiesGemini, aiRequestQueue, aiBudgetGuard
         );
     }
 
+    // getProvider()/getDefaultProvider() now wrap the raw provider in QueuedAiProviderStrategy
+    // (single choke point for the request queue + budget guard) — assertions unwrap via the
+    // package-private delegate() accessor to verify routing without changing test intent.
+
     @Test
     void getProvider_gemini_returnsGeminiProvider() {
-        assertThat(factory.getProvider(AiProvider.GEMINI)).isSameAs(geminiProvider);
+        assertThat(((QueuedAiProviderStrategy) factory.getProvider(AiProvider.GEMINI)).delegate())
+            .isSameAs(geminiProvider);
     }
 
     @Test
     void getProvider_claude_returnsClaudeProvider() {
-        assertThat(factory.getProvider(AiProvider.CLAUDE)).isSameAs(claudeProvider);
+        assertThat(((QueuedAiProviderStrategy) factory.getProvider(AiProvider.CLAUDE)).delegate())
+            .isSameAs(claudeProvider);
     }
 
     @Test
     void getProvider_openai_returnsOpenAIProvider() {
-        assertThat(factory.getProvider(AiProvider.OPENAI)).isSameAs(openAIProvider);
+        assertThat(((QueuedAiProviderStrategy) factory.getProvider(AiProvider.OPENAI)).delegate())
+            .isSameAs(openAIProvider);
     }
 
     @Test
     void getDefaultProvider_configuredGemini_returnsGeminiProvider() {
-        assertThat(factory.getDefaultProvider()).isSameAs(geminiProvider);
+        assertThat(((QueuedAiProviderStrategy) factory.getDefaultProvider()).delegate())
+            .isSameAs(geminiProvider);
     }
 
     @Test
     void getDefaultProvider_configuredClaude_returnsClaudeProvider() {
         AIProviderFactory claudeFactory = new AIProviderFactory(
-            ollamaProvider, geminiProvider, Optional.of(claudeProvider), Optional.of(openAIProvider), aiPropertiesClaude
+            ollamaProvider, geminiProvider, Optional.of(claudeProvider), Optional.of(openAIProvider),
+            aiPropertiesClaude, aiRequestQueue, aiBudgetGuard
         );
-        assertThat(claudeFactory.getDefaultProvider()).isSameAs(claudeProvider);
+        assertThat(((QueuedAiProviderStrategy) claudeFactory.getDefaultProvider()).delegate())
+            .isSameAs(claudeProvider);
     }
 }

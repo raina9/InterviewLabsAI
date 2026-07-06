@@ -45,7 +45,13 @@ public enum ErrorCode {
 
     DRILL_SESSION_NOT_FOUND("Drill session not found. It may have expired or not been started."),
     DRILL_ALREADY_COMPLETED("This drill session is already complete. Retrieve the summary instead."),
-    DRILL_GENERATION_FAILED("Failed to generate drill content. Please retry your request.");
+    DRILL_GENERATION_FAILED("Failed to generate drill content. Please retry your request."),
+
+    AI_BUSY("The AI service is at capacity. Please retry shortly."),
+    AI_BUDGET_EXHAUSTED("The daily AI usage budget has been reached. Please try again tomorrow."),
+
+    FORBIDDEN_ADMIN_ONLY("This action requires administrator privileges."),
+    SYSTEM_FEEDBACK_NOT_FOUND("System feedback record not found.");
 
     private final String defaultMessage;
 

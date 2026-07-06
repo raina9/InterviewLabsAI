@@ -20,8 +20,9 @@ import java.util.UUID;
  * minimum requirement — "enhance always" rule applies here).
  * Key: base64-decoded JWT_SECRET env var. Must be >= 64 bytes.
  *
- * Claims packed into every token: sub (userId), email, name, picture.
- * Storing name + picture avoids a DB round-trip on every request to /me.
+ * Claims packed into every token: sub (userId), email, name, picture, role.
+ * Storing name + picture + role avoids a DB round-trip on every request to /me
+ * and on every role check (e.g. the system-feedback admin endpoint).
  */
 @Slf4j
 @Service
@@ -30,6 +31,7 @@ public class JwtService {
     static final String CLAIM_EMAIL   = "email";
     static final String CLAIM_NAME    = "name";
     static final String CLAIM_PICTURE = "picture";
+    static final String CLAIM_ROLE    = "role";
 
     private final SecretKey secretKey;
     private final JwtProperties properties;
@@ -41,10 +43,20 @@ public class JwtService {
     }
 
     /**
-     * Issues a signed JWT access token.
-     * Sub = userId (stable identity). Claims include display fields for the /me endpoint.
+     * Issues a signed JWT access token with role defaulted to CANDIDATE.
+     * Kept for call sites that predate role-based access — prefer the 5-arg overload
+     * when the caller actually knows the user's role (e.g. OAuth2SuccessHandler).
      */
     public String signToken(UUID userId, String email, String name, String picture) {
+        return signToken(userId, email, name, picture, Role.CANDIDATE);
+    }
+
+    /**
+     * Issues a signed JWT access token.
+     * Sub = userId (stable identity). Claims include display fields for the /me endpoint
+     * and role for authorization checks — both avoid a DB round-trip per request.
+     */
+    public String signToken(UUID userId, String email, String name, String picture, Role role) {
         Date now    = new Date();
         Date expiry = new Date(now.getTime() + properties.accessTokenExpiryMs());
 
@@ -53,6 +65,7 @@ public class JwtService {
                 .claim(CLAIM_EMAIL,   email)
                 .claim(CLAIM_NAME,    name)
                 .claim(CLAIM_PICTURE, picture)
+                .claim(CLAIM_ROLE,    role.name())
                 .issuer(properties.issuer())
                 .issuedAt(now)
                 .expiration(expiry)
@@ -83,13 +96,18 @@ public class JwtService {
     /**
      * Reconstructs the security principal from validated claims.
      * Called only after verifyToken() — claims are guaranteed valid here.
+     * Missing role claim (tokens issued before role support existed) defaults to
+     * CANDIDATE rather than failing — a stale token should not suddenly become invalid.
      */
     public AuthenticatedUser extractPrincipal(Claims claims) {
+        String roleClaim = claims.get(CLAIM_ROLE, String.class);
+        Role role = roleClaim != null ? Role.valueOf(roleClaim) : Role.CANDIDATE;
         return new AuthenticatedUser(
             UUID.fromString(claims.getSubject()),
             claims.get(CLAIM_EMAIL,   String.class),
             claims.get(CLAIM_NAME,    String.class),
-            claims.get(CLAIM_PICTURE, String.class)
+            claims.get(CLAIM_PICTURE, String.class),
+            role
         );
     }
 }

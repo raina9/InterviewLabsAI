@@ -59,11 +59,15 @@ public class DevTokenFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Dev mode is already a full-trust local backdoor (blocked outright in production —
+        // see SecurityConfig) — granting ADMIN here matches that existing trust level rather
+        // than introducing a second, narrower notion of "dev trust".
         AuthenticatedUser principal = new AuthenticatedUser(
             authProperties.devUserId(),
             authProperties.devUserEmail(),
             authProperties.devUserName(),
-            null
+            null,
+            Role.ADMIN
         );
 
         SecurityContextHolder.getContext().setAuthentication(

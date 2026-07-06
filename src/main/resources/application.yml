@@ -38,7 +38,7 @@ spring:
       minimum-idle: ${DB_POOL_MIN_IDLE:2}
       # Fail on startup if DB unreachable — fast failure is better than silent startup
       initialization-fail-timeout: 1
-      connection-timeout: ${DB_CONN_TIMEOUT_MS:30000}
+      connection-timeout: ${DB_POOL_TIMEOUT_MS:30000}
       idle-timeout: ${DB_IDLE_TIMEOUT_MS:600000}
       max-lifetime: ${DB_MAX_LIFETIME_MS:1800000}
       pool-name: InterviewLabHikariPool
@@ -302,6 +302,17 @@ app:
     #   api-key: ${OPENAI_API_KEY}
     #   base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
     #   model: ${OPENAI_MODEL:gpt-4o}
+    # -------------------------------------------------------------------------
+    # Request queue + daily budget kill switch (see AIRequestQueue, AiBudgetGuard, ADR-011)
+    # Every provider call passes through both, regardless of which provider is active.
+    # -------------------------------------------------------------------------
+    queue:
+      # Max concurrent in-flight AI calls — bounds load against a slow/local LLM
+      max-concurrent: ${AI_MAX_CONCURRENT:5}
+      # Seconds a request waits for a free slot before failing with AI_BUSY (429)
+      timeout-seconds: ${AI_QUEUE_TIMEOUT_SECONDS:30}
+      # Hard daily cap on AI calls across ALL users, ALL providers — runaway-bill protection
+      daily-global-limit: ${AI_DAILY_GLOBAL_LIMIT:1000}
 
   # ---------------------------------------------------------------------------
   # Rate Limiting — per user, fixed window (see RateLimitService, ADR-010)
@@ -434,11 +445,17 @@ app:
 # Springdoc OpenAPI — Swagger UI
 # UI: /swagger-ui.html | Spec: /api-docs | Disable in prod if not needed
 # OpenAPI metadata (title, description, contact) configured in OpenApiConfig.java
+# SWAGGER_ENABLED=false takes swagger-ui + api-docs fully offline (both endpoints 404).
+# DEPLOYMENT_MODE=production additionally forces try-it-out off at runtime regardless
+# of SWAGGER_TRY_IT (see SwaggerProductionHardener) — defense in depth against a
+# forgotten SWAGGER_TRY_IT=true shipping live "Execute" buttons to production.
 # =============================================================================
 springdoc:
   api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
     path: /api-docs
   swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui.html
     # Disable Try-it-out in prod to prevent accidental live calls via Swagger
     try-it-out-enabled: ${SWAGGER_TRY_IT:true}

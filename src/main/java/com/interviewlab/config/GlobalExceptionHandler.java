@@ -6,6 +6,7 @@ import com.interviewlab.ai.AIProviderException;
 import com.interviewlab.code.CodeChallengeException;
 import com.interviewlab.curriculum.CurriculumException;
 import com.interviewlab.drill.DrillException;
+import com.interviewlab.feedback.FeedbackException;
 import com.interviewlab.quiz.QuizException;
 import com.interviewlab.interview.InterviewException;
 import com.interviewlab.profile.ProfileException;
@@ -40,6 +41,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AIProviderException.class)
     public ResponseEntity<ApiError> handleAIProviderException(AIProviderException ex) {
         log.warn("AI provider error: code={} message={}", ex.errorCode(), ex.getMessage());
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(ex.status());
+        if (ex.retryAfterSeconds() != null) {
+            builder.header("Retry-After", String.valueOf(ex.retryAfterSeconds()));
+        }
+        return builder.body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(FeedbackException.class)
+    public ResponseEntity<ApiError> handleFeedbackException(FeedbackException ex) {
+        log.warn("Feedback error: code={} message={}", ex.errorCode(), ex.getMessage());
         return ResponseEntity
                 .status(ex.status())
                 .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));

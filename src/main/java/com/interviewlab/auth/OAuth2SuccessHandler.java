@@ -60,7 +60,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         }
 
         User user   = userService.findOrCreate(googleSub, email, name, picture);
-        String jwt  = jwtService.signToken(user.getId(), user.getEmail(), user.getName(), user.getPicture());
+        String jwt  = jwtService.signToken(user.getId(), user.getEmail(), user.getName(), user.getPicture(), user.getRole());
 
         // Cookie maxAge in seconds; expiry comes from config — never hardcoded
         int maxAgeSeconds = (int) (jwtProperties.accessTokenExpiryMs() / 1000);

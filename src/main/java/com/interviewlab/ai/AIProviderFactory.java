@@ -24,26 +24,37 @@ public class AIProviderFactory {
     private final Optional<ClaudeProvider> claudeProvider;
     private final Optional<OpenAIProvider> openAIProvider;
     private final AiProperties             aiProperties;
+    private final AIRequestQueue           aiRequestQueue;
+    private final AiBudgetGuard            aiBudgetGuard;
 
     public AIProviderFactory(
             OllamaProvider ollamaProvider,
             GeminiProvider geminiProvider,
             Optional<ClaudeProvider> claudeProvider,
             Optional<OpenAIProvider> openAIProvider,
-            AiProperties aiProperties) {
+            AiProperties aiProperties,
+            AIRequestQueue aiRequestQueue,
+            AiBudgetGuard aiBudgetGuard) {
         this.ollamaProvider = ollamaProvider;
         this.geminiProvider = geminiProvider;
         this.claudeProvider = claudeProvider;
         this.openAIProvider = openAIProvider;
         this.aiProperties   = aiProperties;
+        this.aiRequestQueue = aiRequestQueue;
+        this.aiBudgetGuard  = aiBudgetGuard;
         log.info("AIProviderFactory initialised — default={} claude={} openai={}",
             aiProperties.defaultProvider(),
             claudeProvider.isPresent() ? "active" : "parked",
             openAIProvider.isPresent() ? "active" : "parked");
     }
 
+    /**
+     * Every provider returned here is wrapped in QueuedAiProviderStrategy — the single
+     * choke point through which all AI calls pass AIRequestQueue and AiBudgetGuard.
+     * Callers still just call generate()/generateJson() as normal; the wrapping is invisible.
+     */
     public AiProviderStrategy getProvider(AiProvider type) {
-        return switch (type) {
+        AiProviderStrategy delegate = switch (type) {
             case OLLAMA -> ollamaProvider;
             case GEMINI -> geminiProvider;
             case CLAUDE -> claudeProvider.orElseThrow(() -> new IllegalStateException(
@@ -51,6 +62,7 @@ public class AIProviderFactory {
             case OPENAI -> openAIProvider.orElseThrow(() -> new IllegalStateException(
                 "OpenAI provider is not active — set AI_PROVIDER=openai and OPENAI_API_KEY to enable it"));
         };
+        return new QueuedAiProviderStrategy(delegate, aiRequestQueue, aiBudgetGuard);
     }
 
     public AiProviderStrategy getDefaultProvider() {

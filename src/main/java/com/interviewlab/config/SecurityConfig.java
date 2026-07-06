@@ -23,7 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Slf4j
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(AuthProperties.class)
+@EnableConfigurationProperties({AuthProperties.class, DeploymentProperties.class})
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -33,6 +33,7 @@ public class SecurityConfig {
     private final JwtService           jwtService;
     private final AuthProperties       authProperties;
     private final ObjectMapper         objectMapper;
+    private final DeploymentProperties deploymentProperties;
 
     @Value("${GOOGLE_CLIENT_ID:not-configured}")
     private String googleClientId;
@@ -108,6 +109,17 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
         } else {
+            // Defense in depth beyond DeploymentModeValidator (which only fires on
+            // ApplicationReadyEvent, after this bean method has already run): DevTokenFilter
+            // must never even be instantiated in production, independent of AUTH_MODE —
+            // a misconfigured AUTH_MODE=dev in production must not silently wire the
+            // full-trust dev backdoor into the filter chain.
+            if (deploymentProperties.isProduction()) {
+                throw new IllegalStateException(
+                    "DEPLOYMENT_MODE=production forbids DevTokenFilter — refusing to start. " +
+                    "Configure Google OAuth2 credentials or explicit AUTH_MODE=oauth."
+                );
+            }
             log.info("Auth mode: dev (no Google credentials — set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET to enable OAuth)");
             // Dev mode: X-Dev-Token header authenticates all requests — no OAuth2 login endpoint
             http.addFilterBefore(devTokenFilter(), UsernamePasswordAuthenticationFilter.class);
