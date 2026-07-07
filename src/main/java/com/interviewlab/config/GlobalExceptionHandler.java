@@ -1,5 +1,6 @@
 package com.interviewlab.config;
 
+import com.interviewlab.admin.AdminException;
 import com.interviewlab.assessment.AssessmentException;
 import com.interviewlab.auth.AuthException;
 import com.interviewlab.ai.AIProviderException;
@@ -123,6 +124,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RateLimitException.class)
     public ResponseEntity<ApiError> handleRateLimitException(RateLimitException ex) {
         log.warn("Rate limit error: code={} message={}", ex.errorCode(), ex.getMessage());
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(AdminException.class)
+    public ResponseEntity<ApiError> handleAdminException(AdminException ex) {
+        log.warn("Admin error: code={} message={}", ex.errorCode(), ex.getMessage());
         return ResponseEntity
                 .status(ex.status())
                 .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));

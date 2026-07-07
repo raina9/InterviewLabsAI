@@ -2,9 +2,10 @@ package com.interviewlab.session;
 
 import com.interviewlab.auth.ErrorCode;
 import com.interviewlab.event.EventPublisher;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,10 +24,21 @@ class SessionServiceTest {
     @Mock SessionRepository  sessionRepository;
     @Mock SessionProperties  sessionProperties;
     @Mock EventPublisher     eventPublisher;
-    @InjectMocks SessionService sessionService;
+
+    // Real registry, not a mock — constructed manually below rather than via @InjectMocks
+    // (same reasoning as the @ConfigurationProperties-record cases in CLAUDE.md: a mocked
+    // MeterRegistry.counter(...) would return null and NPE on .increment()).
+    SimpleMeterRegistry meterRegistry;
+    SessionService       sessionService;
 
     private static final UUID USER_ID    = UUID.randomUUID();
     private static final UUID SESSION_ID = UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
+        sessionService = new SessionService(sessionRepository, sessionProperties, eventPublisher, meterRegistry);
+    }
 
     private Session activeSession() {
         return new Session(USER_ID, InterviewType.TECHNICAL, "Senior Engineer", "JD text", "MEDIUM", SessionStatus.ACTIVE);
@@ -46,6 +58,19 @@ class SessionServiceTest {
         assertThat(result.getStatus()).isEqualTo(SessionStatus.ACTIVE);
         assertThat(result.getUserId()).isEqualTo(USER_ID);
         verify(sessionRepository).save(any(Session.class));
+    }
+
+    @Test
+    void createSession_incrementsInterviewSessionsCreatedCounter() {
+        when(sessionProperties.defaultStatus()).thenReturn(SessionStatus.ACTIVE);
+        when(sessionRepository.save(any(Session.class))).thenReturn(activeSession());
+
+        CreateSessionRequest request = new CreateSessionRequest(
+            InterviewType.TECHNICAL, "Senior Engineer", "JD text", "MEDIUM", null, null
+        );
+        sessionService.createSession(USER_ID, request);
+
+        assertThat(meterRegistry.counter("interview.sessions.created").count()).isEqualTo(1.0);
     }
 
     @Test

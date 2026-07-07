@@ -1,0 +1,59 @@
+# =============================================================================
+# Database Backup — scheduled pg_dump to a GitHub Actions artifact
+# =============================================================================
+# Disabled by default: this workflow only runs (the cron trigger only fires, and the
+# manual dispatch only succeeds) once a DB_URL secret is configured in this repo's
+# Settings → Secrets and variables → Actions. Without it, pg_dump has nothing to
+# connect to and the job fails fast at the "Verify DB_URL is configured" step below
+# rather than silently no-op-ing.
+#
+# Setup:
+#   1. Settings → Secrets and variables → Actions → New repository secret
+#   2. Name: DB_URL
+#      Value: postgresql://<user>:<password>@<host>:<port>/<database>
+#             (Supabase: use the "Connection pooling" URL, not the direct connection)
+#   3. That's it — the schedule below picks it up on the next run.
+#
+# Retention: artifacts expire after 7 days (GitHub deletes them automatically).
+# Restore: download the artifact from the Actions run, gunzip, then
+#          psql "$DB_URL" < backup.sql
+# =============================================================================
+
+name: Database Backup
+
+on:
+  schedule:
+    # 02:00 UTC daily
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify DB_URL is configured
+        run: |
+          if [ -z "${{ secrets.DB_URL }}" ]; then
+            echo "::error::DB_URL secret is not configured — see workflow file header for setup steps."
+            exit 1
+          fi
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Dump and compress database
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+        run: |
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          echo "BACKUP_FILE=interviewlab-backup-${TIMESTAMP}.sql.gz" >> "$GITHUB_ENV"
+          pg_dump "$DB_URL" --no-owner --no-privileges | gzip > "interviewlab-backup-${TIMESTAMP}.sql.gz"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 7

@@ -463,13 +463,17 @@ springdoc:
 
 # =============================================================================
 # Actuator — Observability endpoints
-# Expose health + info always. Metrics only in non-prod or via authenticated path.
+# health/info: authenticated by SecurityConfig (except /actuator/health, permitAll for
+# platform health checks). metrics/prometheus: permitAll in SecurityConfig because scrapers
+# (Prometheus, Railway) carry no application JWT — PRODUCTION NOTE: /actuator/prometheus and
+# /actuator/metrics must be network-restricted in production (ingress allowlist, security
+# group, or private network) since Spring Security does not gate them by role.
 # =============================================================================
 management:
   endpoints:
     web:
       exposure:
-        include: ${ACTUATOR_ENDPOINTS:health,info,metrics}
+        include: ${ACTUATOR_ENDPOINTS:health,info,metrics,prometheus}
       base-path: /actuator
   endpoint:
     health:

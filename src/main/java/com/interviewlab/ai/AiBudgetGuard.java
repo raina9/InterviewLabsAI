@@ -2,6 +2,7 @@ package com.interviewlab.ai;
 
 import com.interviewlab.auth.ErrorCode;
 import com.interviewlab.sessionstore.SessionStore;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -30,18 +31,29 @@ public class AiBudgetGuard {
 
     private final SessionStore       sessionStore;
     private final AiQueueProperties  aiQueueProperties;
+    private final MeterRegistry      meterRegistry;
 
     public void checkAndIncrement() {
         long count = sessionStore.increment(key(), TTL_HOURS);
         if (count > aiQueueProperties.dailyGlobalLimit()) {
             log.error("[AI_BUDGET_ALERT] Daily AI call budget exhausted: count={} limit={}",
                 count, aiQueueProperties.dailyGlobalLimit());
+            meterRegistry.counter("ai.budget.rejected").increment();
             throw new AIProviderException(
                 ErrorCode.AI_BUDGET_EXHAUSTED,
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "Daily AI usage budget exhausted. Please try again tomorrow."
             );
         }
+        meterRegistry.counter("ai.calls.total").increment();
+    }
+
+    /**
+     * Today's AI call count without incrementing — read-only, used by admin stats.
+     */
+    public long todaysCallCount() {
+        Long count = sessionStore.get(key(), Long.class);
+        return count == null ? 0L : count;
     }
 
     private String key() {

@@ -79,6 +79,11 @@ public class SecurityConfig {
                 // Health endpoint — required unauthenticated for Railway health checks
                 .requestMatchers("/actuator/health").permitAll()
 
+                // Metrics/Prometheus scrape endpoints — permitAll since scrapers carry no
+                // application JWT. MUST be restricted at network/infra layer in production
+                // (ingress allowlist, security group, or private network) — see application.yml.
+                .requestMatchers("/actuator/metrics", "/actuator/metrics/**", "/actuator/prometheus").permitAll()
+
                 // Embedded frontend static assets — CDN React shell and JSX components
                 .requestMatchers("/", "/index.html", "/static/**").permitAll()
 

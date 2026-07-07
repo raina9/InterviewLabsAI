@@ -1,6 +1,7 @@
 package com.interviewlab.ai;
 
 import com.interviewlab.sessionstore.InMemorySessionStore;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +24,8 @@ class AIProviderFactoryTest {
     // Generous limits — never blocks/exhausts in these routing-focused tests.
     private final AiQueueProperties aiQueueProperties = new AiQueueProperties(100, 30, 100_000);
     private final AIRequestQueue    aiRequestQueue     = new AIRequestQueue(aiQueueProperties);
-    private final AiBudgetGuard     aiBudgetGuard      = new AiBudgetGuard(new InMemorySessionStore(), aiQueueProperties);
+    private final AiBudgetGuard     aiBudgetGuard      =
+        new AiBudgetGuard(new InMemorySessionStore(), aiQueueProperties, new SimpleMeterRegistry());
 
     AIProviderFactory factory;
 

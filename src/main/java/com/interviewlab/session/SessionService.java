@@ -2,6 +2,7 @@ package com.interviewlab.session;
 
 import com.interviewlab.auth.ErrorCode;
 import com.interviewlab.event.EventPublisher;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ public class SessionService {
     private final SessionRepository  sessionRepository;
     private final SessionProperties  sessionProperties;
     private final EventPublisher     eventPublisher;
+    private final MeterRegistry      meterRegistry;
 
     @Transactional
     public Session createSession(UUID userId, CreateSessionRequest request) {
@@ -34,6 +36,7 @@ public class SessionService {
         session.setTargetCompany(request.targetCompany());
         session.setTopicFocus(request.topicFocus());
         Session saved = sessionRepository.save(session);
+        meterRegistry.counter("interview.sessions.created").increment();
         log.info("Session created: id={} userId={} type={}", saved.getId(), userId, request.interviewType());
         return saved;
     }

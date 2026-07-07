@@ -109,6 +109,13 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Micrometer Prometheus registry — exposes /actuator/prometheus in Prometheus text
+             format for scraping. OSS, zero cost, version managed by spring-boot-starter-parent. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- ===================================================================
              DATABASE
              =================================================================== -->
