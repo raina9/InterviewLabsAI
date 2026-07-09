@@ -49,4 +49,21 @@ Version history reconstructed from checkpoint history (`CLAUDE.md` → `CURRENT 
 - This documentation layer added: ADRs (`docs/decisions/`), mentorship docs (`docs/mentorship/`), system design, mastery tracker, authz matrix, AI architecture doc
 - Commit: `42d4334` — Remove internal roadmap from public README; git release log entry: 2026-06-28
 
-See also: [[decisions/ADR-001-ollama-over-gemini]] through [[decisions/ADR-008-kraft-over-zookeeper]], [[mentorship/mistakes-and-fixes]]
+## V1.6 — Scale-Ready: SessionStore/Redis, AI Queue, DB Constraints, Admin Stats
+- `SessionStore` abstraction (`sessionstore/` package) + `DeploymentModeValidator` — `InMemorySessionStore` default, `RedisSessionStore` opt-in via `SESSION_STORE=redis` + `REDIS_URL`, zero-config for local dev — [[decisions/ADR-009-sessionstore-abstraction]]
+- `AIRequestQueue` (Semaphore-based) + `AiBudgetGuard` daily kill switch — protects against a runaway AI bill independent of per-user rate limiting — [[decisions/ADR-011-ai-request-queue]]
+- DB integrity: `V10__add_check_constraints.sql` — CHECK constraints added at the DB level; GDPR `DELETE /me` account-deletion endpoint (`UserController`/`UserAccountService`); Monaco editor lazy-loaded; a11y fixes; capacity docs
+- Admin stats endpoint (`AdminController`/`AdminStatsService`), scheduled DB backup GitHub Actions workflow, Prometheus/Micrometer metrics wiring
+- Commits: `23de362` — SessionStore abstraction + DEPLOYMENT_MODE validator; `71f3bf7` — AI request queue + daily budget kill switch + production security hardening; `2382654` — DB integrity constraints, GDPR delete endpoint, Monaco lazy load, a11y fixes, capacity docs; `715235e` — Admin stats endpoint, DB backup workflow, Prometheus metrics wiring
+
+## Documentation Decision — `docs/system-design.md` vs `docs/hld.md`
+`docs/system-design.md` was evaluated as a possible new doc during a documentation-completion
+pass and deliberately **not** duplicated into a second file — at V1.6 scale it substantially
+overlaps `hld.md` (component breakdown, data flow) while adding capacity estimation, deep-dives,
+and the "at 10x scale" trade-off analysis that `hld.md` intentionally keeps out of its own scope.
+Decision: keep both, but `hld.md` only gets a short capacity pointer (see `hld.md` → "Capacity &
+Scale (short)") rather than restating the numbers — `system-design.md` remains the single source
+for capacity/scale material. Re-evaluate if the two docs drift further or a reader consistently
+needs both open at once.
+
+See also: [[decisions/ADR-001-ollama-over-gemini]] through [[decisions/ADR-011-ai-request-queue]], [[mentorship/mistakes-and-fixes]]

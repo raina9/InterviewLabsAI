@@ -24,7 +24,7 @@ Risk level key: **LOW** (solid, demonstrated, defensible) · **MEDIUM** (underst
 | Spring AI 2.0 integration (Ollama) | Yes — [[decisions/ADR-001-ollama-over-gemini]], [[decisions/ADR-006-spring-ai-property-path]] | Yes | Yes | LOW |
 | `@ConfigurationProperties` externalized config discipline | Yes — `AiProperties`, `AgentProperties`, `AuthProperties`, `JwtProperties` — zero hardcoded values | Yes | Yes | LOW |
 | GlobalExceptionHandler / structured error responses | Yes — `ApiError`, `ErrorCode` enums per domain, standard structure across all controllers | Yes | Yes | LOW |
-| Role-based authorization (`@PreAuthorize`, `hasRole`) | **No** — no role model exists at all | Can describe how it *would* be added | Partial | MEDIUM |
+| Role-based authorization (`@PreAuthorize`, `hasRole`) | Partial — `Role` enum + in-controller checks (`AdminController`, `SystemFeedbackController`), no `@EnableMethodSecurity`/`@PreAuthorize` — [[authz-matrix]] | Yes, including the trade-off for not using method security at 2 check points | Yes | MEDIUM |
 | Spring Kafka (real consumer/producer, not just config) | Seam only — `SyncEventPublisher` is the only running implementation | Yes, can describe intended design | No — never run a live consumer | HIGH |
 | Spring Boot filter auto-registration vs security chain | Yes — found and fixed live: `@Bean`-declared `jwtAuthFilter()`/`devTokenFilter()` were double-registered (servlet container + security chain) — [[mentorship/session-learnings]] "The Masked Bug Chain" | Yes | Yes | LOW |
 | `@WebMvcTest` slices + `@ConfigurationProperties` binding | Yes — `@EnableConfigurationProperties` on a slice-imported `@Configuration` class vs relying on `@ConfigurationPropertiesScan` — `docs/lld/auth-flow.md` | Yes | Yes | LOW |

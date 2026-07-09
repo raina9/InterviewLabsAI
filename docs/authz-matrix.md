@@ -1,10 +1,12 @@
 # Authorization Matrix
 
-## Current Role Model — Gap Notice
+## Current Role Model
 
-**There is no role-based access control in InterviewLab.** No `ADMIN` role, no `CANDIDATE` role, no role field on `User` at all. `SecurityConfig` distinguishes exactly two states: **authenticated** and **unauthenticated**. Every authenticated principal — regardless of who they are — has identical access to every `/api/v1/**` endpoint. There is no admin surface, no per-endpoint role check, no `@PreAuthorize`/`hasRole()` anywhere in the codebase.
+`Role` enum (`CANDIDATE`, `ADMIN`) is stored on `users.role` (`@Enumerated(EnumType.STRING)`, `V9__add_user_role.sql`). `CANDIDATE` is the default for every OAuth-created and dev-mode-created user; `ADMIN` is granted only by a manual direct DB update — there is no self-service promotion endpoint (the seeded dev user is `ADMIN` so local dev has an admin account for free).
 
-This matrix therefore documents the *actual* current state (single implicit role, informally "CANDIDATE") plus the endpoint-level authentication requirement, and calls out `ADMIN` as unimplemented rather than pretending it exists. See [[mentorship/weak-areas]] for why this is flagged as a real interview-prep gap, not just a doc nicety.
+There is still no `@PreAuthorize`/`hasRole()` anywhere and no `@EnableMethodSecurity` — `SecurityConfig` itself only distinguishes **authenticated** vs **unauthenticated** at the filter-chain level. Role enforcement for the two admin endpoints is an **explicit in-controller check** (`requireAdmin(principal)` comparing `principal.role() != Role.ADMIN`, throwing 403 `FORBIDDEN_ADMIN_ONLY`) — a deliberate choice documented in both controllers' javadoc: adding `@EnableMethodSecurity` + AOP proxying for two check points is more moving parts than the checks themselves. Every other endpoint has no role gate at all — any authenticated `CANDIDATE` or `ADMIN` has identical access to their own data.
+
+See [[mentorship/weak-areas]] for why "in-controller checks, not framework-level" is flagged as a real interview-prep discussion point, not just a doc nicety.
 
 ## Auth Modes (SecurityConfig)
 
@@ -15,14 +17,21 @@ This matrix therefore documents the *actual* current state (single implicit role
 
 Fail-closed default: `anyRequest().denyAll()` — any path not explicitly matched is rejected, not implicitly allowed.
 
+### Dev-token behavior per deployment mode
+
+`DeploymentProperties.mode` (`app.deployment.mode`) is independent of `AUTH_MODE` but constrains it: `DeploymentModeValidator` runs once on `ApplicationReadyEvent` and, only when `DEPLOYMENT_MODE=production`, throws `IllegalStateException` at startup if `AUTH_MODE=dev` — production must run `oauth`, full stop. `personal` mode (the default) runs no such check, so `AUTH_MODE=dev` (the `X-Dev-Token` full-trust bypass) is allowed by design for single-user local/relaxed use. As defense in depth beyond that event-listener check — which fires *after* `SecurityConfig`'s `@Bean` method has already run — `SecurityConfig.securityFilterChain()` itself also refuses to wire `DevTokenFilter` into the chain at all when `deploymentProperties.isProduction()` is true, so a misconfigured `AUTH_MODE=dev` in production fails closed twice, not once. CLAUDE.md's conceptual `public`/`embedded` deployment modes are not distinct values `DeploymentProperties` currently recognizes — only `personal` and `production` exist in code today.
+
 ## Endpoint Matrix
 
-Role column reflects the only role that currently exists — every authenticated user, informally "CANDIDATE." `ADMIN` is listed as **N/A — not implemented** for every row since no admin surface exists anywhere in the API.
+Role column reflects `CANDIDATE` (default, all authenticated users) vs `ADMIN` (manually promoted, gated by explicit in-controller checks on the two admin-only rows below).
 
 | Endpoint | Method | Auth Required | CANDIDATE (all authenticated users) | ADMIN |
 |---|---|---|---|---|
 | `/api/v1/auth/me` | GET | Public route, but 401 thrown programmatically if principal is null | Own profile only (JWT claims) | N/A — not implemented |
 | `/api/v1/auth/logout` | POST | No (clears cookie regardless) | Clears own session cookie | N/A |
+| `/api/v1/me` | DELETE | Yes | Permanently deletes own account + all associated data (GDPR right to erasure) — irreversible | Same as CANDIDATE, no admin override |
+| `/api/v1/admin/stats` | GET | Yes | **403 `FORBIDDEN_ADMIN_ONLY`** — `requireAdmin()` check in `AdminController` | Platform usage/health stats |
+| `/api/v1/admin/system-feedback/{id}/applied` | PATCH | Yes | **403 `FORBIDDEN_ADMIN_ONLY`** — `requireAdmin()` check in `SystemFeedbackController` | Toggle whether a feedback submission has been applied |
 | `/api/v1/profile` | GET | Yes | Own profile only | N/A |
 | `/api/v1/profile` | PUT | Yes | Own profile only | N/A |
 | `/api/v1/profile/resume` | PUT | Yes | Own profile only | N/A |
@@ -58,7 +67,7 @@ Role column reflects the only role that currently exists — every authenticated
 ## Known Gaps
 
 1. ~~**`{userId}` path parameters are not verified against the authenticated principal.**~~ **FIXED.** `/api/v1/assessment/report/{userId}` and `/api/v1/curriculum/{userId}` previously accepted `userId` as a raw path variable with no check against the authenticated principal — an IDOR (CWE-639): any authenticated user could substitute another user's UUID and read their assessment report or curriculum plan. Both controllers now derive the requesting identity from `@AuthenticationPrincipal AuthenticatedUser` and compare it against the path `userId` before calling the service layer; a mismatch throws `AssessmentException(ASSESSMENT_ACCESS_DENIED, 403)` / `CurriculumException(CURRICULUM_ACCESS_DENIED, 403)` and the underlying service is never invoked (verified via `verifyNoInteractions` in the regression tests). See `docs/decisions/` for context — this was surfaced during the authz-matrix authoring pass itself (writing the matrix required reading the actual controller source, not just describing intended behavior), fixed the same session. Covered by `AssessmentControllerTest.report_otherUsersReport_returns403` and `CurriculumControllerTest.generateCurriculum_otherUsersCurriculum_returns403`.
-2. **No `ADMIN` role exists.** Any future admin surface (user management, content moderation, system-wide analytics) has no authorization scaffolding to plug into yet — it would need a `role` column on `User`, `@PreAuthorize`/`hasRole()` checks, and explicit `SecurityConfig` matcher rules added from scratch.
+2. ~~**No `ADMIN` role exists.**~~ **PARTIALLY FIXED.** `Role.ADMIN` now exists (`users.role`, `V9__add_user_role.sql`) and gates two endpoints (`AdminController`, `SystemFeedbackController`). Still no framework-level enforcement: no `@EnableMethodSecurity`, no `@PreAuthorize`/`hasRole()`, no `SecurityConfig` matcher rule keyed on role — each new admin endpoint must remember to call `requireAdmin()` itself, which is a repeat-yourself risk (miss the call once and the endpoint is open to any authenticated user) that framework-level enforcement would eliminate.
 3. **API documentation is `permitAll` in all environments** (no environment-based restriction currently implemented despite the comment noting it should be prod-restricted).
 
 See also: [[mentorship/weak-areas]], [[hld]]

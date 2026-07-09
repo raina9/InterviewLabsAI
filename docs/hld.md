@@ -71,6 +71,17 @@ POST /api/v1/interview/{sessionId}/respond
 | Virtual threads | spring.threads.virtual.enabled=true | All I/O-bound (AI calls, DB) benefit automatically |
 | Single application.yml | No Spring Profiles | Railway deploys a single binary; env vars control all modes |
 
+### Capacity & Scale (short)
+
+V1 is a solo-founder, pre-launch, free-tier deployment (Railway + Vercel + Supabase): ~10-50
+DAU, 1-2 sessions/user/day, 5-10 turns/session, ~10-20 AI calls/session (one question-gen +
+one mentor-eval per turn) — well under 1 sustained QPS. A single Railway instance with Supabase
+Postgres handles this comfortably; the interesting design questions at this scale are
+architectural (extractability, AI cost control), not throughput. Full capacity estimation table,
+reasoning, and "at 10x scale — what changes" breakdown: `docs/system-design.md` — that doc is
+kept as the single place for capacity/deep-dive material rather than duplicating it here (see
+`docs/changelog.md` V1.6 for that decision).
+
 ---
 
 ## Interview Talking Points
