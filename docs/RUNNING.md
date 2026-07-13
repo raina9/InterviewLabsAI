@@ -13,8 +13,8 @@
    ```
    .\start-local.ps1
    ```
-   (loads `.env`, starts Docker PostgreSQL, runs Flyway migrations, boots Spring Boot on port 8080)
-3. Open: http://localhost:8080/index.html
+   (loads `.env`, starts Docker PostgreSQL, runs Flyway migrations, boots Spring Boot on port 1212)
+3. Open: http://localhost:1212/index.html
 
 ## First use
 - Intake form is pre-filled with test defaults — submit to start an interview
@@ -31,12 +31,12 @@
 
 Dev API access:
 ```
-curl -H "X-Dev-Token: dev-secret" http://localhost:8080/api/v1/auth/me
+curl -H "X-Dev-Token: dev-secret" http://localhost:1212/api/v1/auth/me
 ```
 
 ## Troubleshooting
 - "Ollama call failed" → Ollama not running, or first-call cold start timeout — retry once
-- Port 8080 busy → stop previous instance (Ctrl+C) or check for orphan Java process
+- Port 1212 busy → stop previous instance (Ctrl+C) or check for orphan Java process
 - Flyway checksum error → `docker-compose down -v` (resets local DB), then restart
 - Schema validation error on startup (`missing table`/`missing column`, especially right after
   `docker-compose down -v`) → a native PostgreSQL service on this machine may be bound to port
