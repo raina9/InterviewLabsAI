@@ -38,6 +38,9 @@ public class UserProfile {
     @Column(name = "resume_text", columnDefinition = "TEXT")
     private String resumeText;
 
+    @Column(name = "resume_url", columnDefinition = "TEXT")
+    private String resumeUrl;
+
     @Column(name = "custom_prompt", columnDefinition = "TEXT")
     private String customPrompt;
 
@@ -66,6 +69,7 @@ public class UserProfile {
     public String getCurrentRole()             { return currentRole; }
     public String[] getTechStack()             { return techStack; }
     public String getResumeText()              { return resumeText; }
+    public String getResumeUrl()               { return resumeUrl; }
     public String getCustomPrompt()            { return customPrompt; }
     public AiProvider getPreferredAiProvider() { return preferredAiProvider; }
     public Instant getUpdatedAt()              { return updatedAt; }
@@ -74,6 +78,7 @@ public class UserProfile {
     public void setCurrentRole(String currentRole)                 { this.currentRole = currentRole; }
     public void setTechStack(String[] techStack)                   { this.techStack = techStack; }
     public void setResumeText(String resumeText)                   { this.resumeText = resumeText; }
+    public void setResumeUrl(String resumeUrl)                     { this.resumeUrl = resumeUrl; }
     public void setCustomPrompt(String customPrompt)               { this.customPrompt = customPrompt; }
     public void setPreferredAiProvider(AiProvider preferredAiProvider) { this.preferredAiProvider = preferredAiProvider; }
 }

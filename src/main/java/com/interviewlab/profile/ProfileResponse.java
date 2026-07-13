@@ -11,6 +11,7 @@ public record ProfileResponse(
     String     currentRole,
     String[]   techStack,
     String     resumeText,
+    String     resumeUrl,
     String     customPrompt,
     AiProvider preferredAiProvider,
     Instant    updatedAt
@@ -22,6 +23,7 @@ public record ProfileResponse(
             profile.getCurrentRole(),
             profile.getTechStack(),
             profile.getResumeText(),
+            profile.getResumeUrl(),
             profile.getCustomPrompt(),
             profile.getPreferredAiProvider(),
             profile.getUpdatedAt()

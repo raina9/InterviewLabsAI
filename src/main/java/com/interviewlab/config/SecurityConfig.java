@@ -87,6 +87,11 @@ public class SecurityConfig {
                 // Embedded frontend static assets — CDN React shell and JSX components
                 .requestMatchers("/", "/index.html", "/static/**").permitAll()
 
+                // Uploaded resume PDFs (local storage mode only — see WebMvcConfig).
+                // Served by filename UUID, not enumerable/guessable; S3 mode never registers
+                // this handler and instead returns presigned URLs pointing at the bucket.
+                .requestMatchers("/files/**").permitAll()
+
                 // All other API endpoints require authentication
                 .requestMatchers("/api/v1/**").authenticated()
 

@@ -13,12 +13,14 @@ import com.interviewlab.interview.InterviewException;
 import com.interviewlab.profile.ProfileException;
 import com.interviewlab.ratelimit.RateLimitException;
 import com.interviewlab.session.SessionException;
+import com.interviewlab.storage.StorageException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.stream.Collectors;
 
@@ -135,6 +137,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ex.status())
                 .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<ApiError> handleStorageException(StorageException ex) {
+        log.warn("Storage error: code={} message={}", ex.errorCode(), ex.getMessage());
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ApiError(ex.errorCode().name(), ex.getMessage(), ex.status().value()));
+    }
+
+    // Thrown by the servlet container's multipart parser before the controller method runs,
+    // when a real upload exceeds spring.servlet.multipart.max-file-size — MockMvc-based tests
+    // never trigger this path, only a real embedded-container request does.
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        log.warn("Upload rejected: exceeds configured max multipart size");
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ApiError("FILE_TOO_LARGE", "The uploaded file exceeds the maximum allowed size.", HttpStatus.BAD_REQUEST.value()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -4,6 +4,7 @@ import com.interviewlab.ai.AiProperties;
 import com.interviewlab.auth.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,23 @@ public class UserProfileService {
         profile.setResumeText(resumeText);
         log.debug("Resume updated: userId={}", userId);
         return userProfileRepository.save(profile);
+    }
+
+    @Transactional
+    public UserProfile updateResumeUrl(UUID userId, String resumeUrl) {
+        UserProfile profile = findProfileOrThrow(userId);
+        profile.setResumeUrl(resumeUrl);
+        try {
+            UserProfile saved = userProfileRepository.save(profile);
+            log.debug("Resume URL updated: userId={}", userId);
+            return saved;
+        } catch (DataAccessException e) {
+            throw new ProfileException(
+                ErrorCode.RESUME_UPLOAD_FAILED,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Failed to save resume URL for user " + userId
+            );
+        }
     }
 
     @Transactional

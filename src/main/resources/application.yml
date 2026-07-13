@@ -183,6 +183,16 @@ spring:
     async:
       request-timeout: 120000
 
+  # ---------------------------------------------------------------------------
+  # Multipart uploads — resume PDF upload (POST /api/v1/me/resume)
+  # max-request-size is 1MB above max-file-size to cover multipart form overhead
+  # (boundaries, other fields) beyond the file part itself.
+  # ---------------------------------------------------------------------------
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE_MB:5}MB
+      max-request-size: 6MB
+
 # =============================================================================
 # Interview Lab Application Properties
 # =============================================================================
@@ -386,6 +396,14 @@ app:
   storage:
     mode: ${STORAGE_MODE:local}
     local-path: ${STORAGE_LOCAL_PATH:./storage}
+    # Resume upload (POST /api/v1/me/resume) — separate root from local-path above,
+    # served back out at /files/** in local mode (see WebMvcConfig, SecurityConfig).
+    upload-dir: ${UPLOAD_DIR:uploads/}
+    max-file-size-mb: ${MAX_FILE_SIZE_MB:5}
+    allowed-types:
+      - application/pdf
+    s3-bucket: ${S3_BUCKET:}
+    s3-region: ${AWS_REGION:us-east-1}
 
   # ---------------------------------------------------------------------------
   # Judge0 — Code execution sandbox (open source, self-hostable)

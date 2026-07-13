@@ -1,5 +1,7 @@
 package com.interviewlab.storage;
 
+import org.springframework.web.multipart.MultipartFile;
+
 /**
  * Storage abstraction — store, retrieve, and delete keyed binary objects.
  *
@@ -25,4 +27,18 @@ public interface StorageService {
      * Delete stored data. No-op if the key does not exist.
      */
     void delete(String key);
+
+    /**
+     * Validate (content-type + magic bytes + size) and persist a resume PDF upload for the
+     * given user, returning the URL to retrieve it (relative /files/... URL in local mode,
+     * presigned URL in S3 mode).
+     *
+     * @throws StorageException FILE_TOO_LARGE / INVALID_FILE_TYPE / STORAGE_FAILURE
+     */
+    String store(MultipartFile file, String userId) throws StorageException;
+
+    /**
+     * Resolve a previously stored file key to a URL a client can fetch directly.
+     */
+    String getUrl(String fileKey);
 }

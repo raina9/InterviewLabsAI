@@ -14,6 +14,7 @@ function IntakeForm({ user, onSessionStarted }) {
     const [errors, setErrors] = React.useState({});
     const [loading, setLoading] = React.useState(false);
     const [apiError, setApiError] = React.useState(null);
+    const [resume, setResume] = React.useState({ file: null, uploading: false, url: null, error: null });
 
     const interviewTypes = [
         { value: 'TECHNICAL',     label: 'Technical' },
@@ -37,6 +38,31 @@ function IntakeForm({ user, onSessionStarted }) {
 
     function toggleVoice() {
         setForm(prev => ({ ...prev, voiceEnabled: !prev.voiceEnabled }));
+    }
+
+    async function handleResumeChange(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        setResume({ file, uploading: true, url: null, error: null });
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            // Not window.apiFetch — it force-sets Content-Type: application/json, which
+            // overrides the multipart boundary the browser would otherwise attach to FormData.
+            const res = await fetch('/api/v1/me/resume', {
+                method: 'POST',
+                headers: { 'X-Dev-Token': localStorage.getItem('devToken') || 'dev-secret-local' },
+                body: formData
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Resume upload failed');
+            }
+            const data = await res.json();
+            setResume({ file, uploading: false, url: data.resumeUrl, error: null });
+        } catch (err) {
+            setResume({ file, uploading: false, url: null, error: err.message });
+        }
     }
 
     async function handleSubmit(e) {
@@ -122,6 +148,25 @@ function IntakeForm({ user, onSessionStarted }) {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+
+                {/* Resume upload */}
+                <div>
+                    <label htmlFor="resumeFile" className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                        Resume (PDF) <span className="text-gray-600 normal-case tracking-normal font-normal">(optional)</span>
+                    </label>
+                    <input id="resumeFile" type="file" accept=".pdf" onChange={handleResumeChange}
+                        disabled={resume.uploading}
+                        className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-surface file:text-gray-200 file:cursor-pointer cursor-pointer disabled:opacity-40" />
+                    {resume.uploading && (
+                        <p className="text-xs text-gray-500 mt-1.5">Uploading…</p>
+                    )}
+                    {resume.url && !resume.uploading && (
+                        <p className="text-xs text-emerald-500 mt-1.5">Uploaded: {resume.file?.name}</p>
+                    )}
+                    {resume.error && (
+                        <p className="text-red-400 text-xs mt-1.5">{resume.error}</p>
+                    )}
+                </div>
 
                 {/* Interview type + Experience */}
                 <div className="grid grid-cols-2 gap-4">

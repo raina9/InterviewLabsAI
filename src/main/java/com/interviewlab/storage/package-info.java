@@ -6,16 +6,11 @@
  *   Config:    STORAGE_MODE=local (or unset), STORAGE_LOCAL_PATH=./storage
  *   Cost:      zero — local filesystem
  *
- * Paid (cloud): S3StorageService (not yet built — seam is ready)
+ * Paid (cloud): S3StorageService (built — see storage/S3StorageService.java)
  *   Condition: @ConditionalOnProperty(name="app.storage.mode", havingValue="s3")
  *   Config:    STORAGE_MODE=s3, AWS_S3_BUCKET, AWS_REGION, AWS credentials
- *   Activation steps:
- *     1. Uncomment software.amazon.awssdk:s3 in pom.xml
- *     2. Uncomment aws.sdk.version in pom.xml properties
- *     3. Uncomment AWS SDK BOM in dependencyManagement
- *     4. Create S3StorageService implementing StorageService (AWS naming convention: S3StorageService)
- *     5. Annotate with @Service @ConditionalOnProperty(name="app.storage.mode", havingValue="s3")
- *     6. Set STORAGE_MODE=s3 and AWS_ credentials in environment
+ *   Activation: set STORAGE_MODE=s3 and AWS_S3_BUCKET/AWS_REGION/credentials in environment —
+ *     software.amazon.awssdk:s3 is already on the classpath (pom.xml), zero code change required.
  *
  * AWS naming convention: S3StorageService (matches GlobalBrain naming pattern).
  * MinIO is the local/OSS drop-in replacement for S3 — same SDK, different endpoint.

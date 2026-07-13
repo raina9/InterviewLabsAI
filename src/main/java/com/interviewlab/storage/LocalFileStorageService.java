@@ -1,14 +1,19 @@
 package com.interviewlab.storage;
 
+import com.interviewlab.auth.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 /**
  * Local filesystem storage — active by default (STORAGE_MODE=local or unset).
@@ -24,10 +29,17 @@ import java.nio.file.Path;
 public class LocalFileStorageService implements StorageService {
 
     private final Path basePath;
+    private final Path uploadBasePath;
+    private final StorageProperties storageProperties;
 
-    public LocalFileStorageService(@Value("${app.storage.local-path:./storage}") String localPath) {
+    public LocalFileStorageService(
+            @Value("${app.storage.local-path:./storage}") String localPath,
+            StorageProperties storageProperties) {
         this.basePath = Path.of(localPath);
-        log.info("storage.mode=local basePath={}", this.basePath.toAbsolutePath());
+        this.storageProperties = storageProperties;
+        this.uploadBasePath = Path.of(storageProperties.uploadDir());
+        log.info("storage.mode=local basePath={} uploadBasePath={}",
+            this.basePath.toAbsolutePath(), this.uploadBasePath.toAbsolutePath());
     }
 
     @Override
@@ -63,5 +75,27 @@ public class LocalFileStorageService implements StorageService {
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to delete object at key: " + key, e);
         }
+    }
+
+    @Override
+    public String store(MultipartFile file, String userId) {
+        ResumeFileValidator.validate(file, storageProperties);
+
+        String fileKey = userId + "/" + UUID.randomUUID() + ".pdf";
+        Path target = uploadBasePath.resolve(fileKey);
+        try {
+            Files.createDirectories(target.getParent());
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new StorageException(ErrorCode.STORAGE_FAILURE, HttpStatus.INTERNAL_SERVER_ERROR,
+                "Failed to store resume for user " + userId);
+        }
+        log.info("storage.resume.store userId={} fileKey={}", userId, fileKey);
+        return getUrl(fileKey);
+    }
+
+    @Override
+    public String getUrl(String fileKey) {
+        return "/files/" + fileKey;
     }
 }

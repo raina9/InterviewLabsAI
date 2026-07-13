@@ -72,6 +72,9 @@ docker-compose.override.yml
 .reloadtrigger
 CLAUDE.md
 
+# Local resume storage (STORAGE_MODE=local) — uploaded PDFs, never commit
+uploads/
+
 # Session notes and debug logs — internal only
 session-notes/
 

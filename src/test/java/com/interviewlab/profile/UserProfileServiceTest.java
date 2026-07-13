@@ -98,4 +98,38 @@ class UserProfileServiceTest {
 
         assertThat(result.getCustomPrompt()).isEqualTo("Focus on system design");
     }
+
+    @Test
+    void updateResumeUrl_profileExists_updatesResumeUrl() {
+        UserProfile profile = new UserProfile(USER_ID, AiProvider.GEMINI);
+        when(userProfileRepository.findByUserId(USER_ID)).thenReturn(Optional.of(profile));
+        when(userProfileRepository.save(profile)).thenReturn(profile);
+
+        UserProfile result = userProfileService.updateResumeUrl(USER_ID, "/files/" + USER_ID + "/resume.pdf");
+
+        assertThat(result.getResumeUrl()).isEqualTo("/files/" + USER_ID + "/resume.pdf");
+    }
+
+    @Test
+    void updateResumeUrl_profileNotFound_throwsProfileException() {
+        when(userProfileRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userProfileService.updateResumeUrl(USER_ID, "/files/x.pdf"))
+            .isInstanceOf(ProfileException.class)
+            .satisfies(ex -> assertThat(((ProfileException) ex).errorCode())
+                .isEqualTo(ErrorCode.PROFILE_NOT_FOUND));
+    }
+
+    @Test
+    void updateResumeUrl_repositorySaveFails_throwsResumeUploadFailed() {
+        UserProfile profile = new UserProfile(USER_ID, AiProvider.GEMINI);
+        when(userProfileRepository.findByUserId(USER_ID)).thenReturn(Optional.of(profile));
+        when(userProfileRepository.save(profile))
+            .thenThrow(new org.springframework.dao.DataIntegrityViolationException("db down"));
+
+        assertThatThrownBy(() -> userProfileService.updateResumeUrl(USER_ID, "/files/x.pdf"))
+            .isInstanceOf(ProfileException.class)
+            .satisfies(ex -> assertThat(((ProfileException) ex).errorCode())
+                .isEqualTo(ErrorCode.RESUME_UPLOAD_FAILED));
+    }
 }

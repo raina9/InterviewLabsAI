@@ -53,7 +53,12 @@ public enum ErrorCode {
     FORBIDDEN_ADMIN_ONLY("This action requires administrator privileges."),
     SYSTEM_FEEDBACK_NOT_FOUND("System feedback record not found."),
 
-    USER_DELETE_FAILED("Failed to delete your account. Please try again or contact support.");
+    USER_DELETE_FAILED("Failed to delete your account. Please try again or contact support."),
+
+    FILE_TOO_LARGE("The uploaded file exceeds the maximum allowed size."),
+    INVALID_FILE_TYPE("Only PDF files are accepted for resume upload."),
+    STORAGE_FAILURE("Failed to store the uploaded file. Please try again."),
+    RESUME_UPLOAD_FAILED("Resume upload failed. Please try again.");
 
     private final String defaultMessage;
 

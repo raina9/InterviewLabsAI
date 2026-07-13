@@ -32,8 +32,12 @@
         <!-- Springdoc OpenAPI — Swagger UI at /swagger-ui.html (verify for Spring Boot 4.x: https://springdoc.org) -->
         <springdoc.version>2.8.8</springdoc.version>
 
-        <!-- AWS SDK BOM version — plug-in ready. Unpark: traffic demand triggers cost rule → migrate OSS → AWS. -->
-        <!-- <aws.sdk.version>2.26.27</aws.sdk.version> -->
+        <!-- AWS SDK BOM version — active for S3StorageService (app.storage.mode=s3, opt-in).
+             SDK jar itself is free/OSS (Apache-2.0); only real AWS S3 usage costs money,
+             and the bean never instantiates unless STORAGE_MODE=s3 is explicitly set
+             (same precedent as spring-boot-starter-data-redis: dependency present, dormant
+             until its mode property opts in — see RedisSessionStore). -->
+        <aws.sdk.version>2.26.27</aws.sdk.version>
     </properties>
 
     <!-- =======================================================================
@@ -53,9 +57,8 @@
                 <scope>import</scope>
             </dependency>
 
-            <!--
-            AWS SDK for Java v2 BOM — consistent version management across all AWS modules.
-            Unpark trigger: traffic demand exceeds zero-cost tier → cost rule → migrate from OSS to AWS.
+            <!-- AWS SDK for Java v2 BOM — consistent version management across all AWS modules.
+                 Active for S3StorageService (app.storage.mode=s3, opt-in — see storage/package-info.java). -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
@@ -63,7 +66,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            -->
         </dependencies>
     </dependencyManagement>
 
@@ -292,20 +294,15 @@
              Unpark trigger: traffic demand → cost rule → migrate from OSS to AWS.
              =================================================================== -->
 
-        <!--
-        AWS S3 — object storage via StorageService interface (aws naming: S3StorageService).
-        Active OSS equivalent: LocalFileStorageService (storage/LocalFileStorageService.java).
-        Activation steps:
-          1. Uncomment this dependency and the aws.sdk.version property + AWS SDK BOM above.
-          2. Implement S3StorageService (see storage/StorageService.java for the contract).
-          3. Annotate with @Service @ConditionalOnProperty(name="app.storage.mode", havingValue="s3").
-          4. Set STORAGE_MODE=s3, AWS_S3_BUCKET, AWS_REGION, and AWS credentials in environment.
-        MinIO is the local/OSS S3-compatible alternative (same SDK, different endpoint).
+        <!-- AWS S3 — object storage via StorageService interface (aws naming: S3StorageService).
+             Active OSS equivalent (default): LocalFileStorageService (storage/LocalFileStorageService.java).
+             Activation: set STORAGE_MODE=s3, AWS_S3_BUCKET, AWS_REGION, and AWS credentials in environment
+             (see storage/S3StorageService.java and storage/package-info.java). MinIO is the local/OSS
+             S3-compatible alternative (same SDK, different endpoint). -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
         </dependency>
-        -->
 
         <!--
         AWS SQS — messaging alternative (MESSAGING_MODE=sqs when implemented).
