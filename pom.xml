@@ -32,6 +32,13 @@
         <!-- Springdoc OpenAPI — Swagger UI at /swagger-ui.html (verify for Spring Boot 4.x: https://springdoc.org) -->
         <springdoc.version>2.8.8</springdoc.version>
 
+        <!-- Flyway — pinned to match the flyway-core/flyway-database-postgresql version Spring
+             Boot 4.1.0 resolves transitively (verified via mvn dependency:tree), so the
+             flyway-maven-plugin (build/plugins below) migrates with the identical engine version
+             the app itself ships with. Plugin version isn't managed by spring-boot-starter-parent
+             (only regular dependencies are), so it's pinned explicitly here. -->
+        <flyway.version>12.4.0</flyway.version>
+
         <!-- AWS SDK BOM version — active for S3StorageService (app.storage.mode=s3, opt-in).
              SDK jar itself is free/OSS (Apache-2.0); only real AWS S3 usage costs money,
              and the bean never instantiates unless STORAGE_MODE=s3 is explicitly set
@@ -140,6 +147,16 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4.x split autoconfiguration into per-feature modules (same pattern as
+             spring-boot-hibernate, spring-boot-jpa elsewhere in this tree) — flyway-core alone
+             no longer triggers FlywayAutoConfiguration; this module supplies it
+             (org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration). Without it,
+             Flyway silently never runs: no error, no log line, regardless of DB state. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
         </dependency>
 
         <!-- ===================================================================
@@ -375,6 +392,34 @@
                         <enabled>true</enabled>
                     </layers>
                 </configuration>
+            </plugin>
+
+            <!-- Flyway Maven Plugin — runs migrations as an explicit pre-app-start step (see
+                 start-local.ps1: `mvn flyway:migrate` runs before `mvn spring-boot:run`).
+                 Migration execution is deliberately kept OUT of the running app's own bean
+                 graph — see application.yml's spring.flyway.enabled=false comment for why:
+                 Spring Boot 4.1.0's split spring-boot-flyway/spring-boot-jpa autoconfiguration
+                 modules produce a circular depends-on relationship between 'flywayInitializer'
+                 and 'entityManagerFactory' at context startup, independent of DB state. -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>${flyway.version}</version>
+                <configuration>
+                    <url>${env.DB_URL}</url>
+                    <user>${env.DB_USERNAME}</user>
+                    <password>${env.DB_PASSWORD}</password>
+                    <locations>
+                        <location>classpath:db/migration</location>
+                    </locations>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-database-postgresql</artifactId>
+                        <version>${flyway.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
             <!--

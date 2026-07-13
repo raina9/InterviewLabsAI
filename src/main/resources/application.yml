@@ -60,14 +60,27 @@ spring:
     show-sql: ${LOG_SQL:false}
     # Open Session in View = false: prevents lazy loading outside transaction boundary
     open-in-view: false
+    defer-datasource-initialization: true
 
   # ---------------------------------------------------------------------------
   # Flyway — Database Migrations
   # All schema changes via versioned SQL scripts in db/migration/.
   # Naming: V{n}__{description}.sql (e.g. V1__create_users.sql)
+  #
+  # enabled: false — in-app Flyway autoconfiguration is deliberately OFF. Spring Boot 4.1.0
+  # splits Flyway/JPA autoconfiguration across separate modules (spring-boot-flyway vs
+  # spring-boot-jpa/spring-boot-hibernate); their built-in EntityManagerFactory<->Flyway
+  # depends-on wiring produces "Circular depends-on relationship between 'flywayInitializer'
+  # and 'entityManagerFactory'" at context startup regardless of DB state (confirmed via
+  # -Dspring-boot.run.arguments=--debug condition-evaluation report + reproduced with a
+  # manually-added org.springframework.boot.jpa.autoconfigure.EntityManagerFactoryDependsOnPostProcessor,
+  # which hit the same circular error rather than fixing it). Migrations instead run via the
+  # flyway-maven-plugin (see pom.xml) as an explicit pre-app-start step — see start-local.ps1
+  # and RUNNING.md. This sidesteps the framework-level ordering bug entirely rather than
+  # fighting it with custom bean wiring.
   # ---------------------------------------------------------------------------
   flyway:
-    enabled: true
+    enabled: false
     locations: classpath:db/migration
     # baseline-on-migrate: false — new schema, no baseline needed
     baseline-on-migrate: false
@@ -75,6 +88,7 @@ spring:
     validate-on-migrate: true
     # Out of order migrations rejected — enforce sequential versioning
     out-of-order: false
+    create-schemas: false
 
   # ---------------------------------------------------------------------------
   # Security — Google OAuth2 Login
