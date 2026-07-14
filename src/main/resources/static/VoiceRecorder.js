@@ -20,6 +20,7 @@ window.VoiceRecorder = (function () {
         var silenceTimer = null;
 
         recognition.onstart = function () {
+            console.log('[VoiceRecorder] recognition started — listening...');
             onStateChange && onStateChange('recording');
         };
 
@@ -31,11 +32,13 @@ window.VoiceRecorder = (function () {
         recognition.onresult = function (event) {
             clearTimeout(silenceTimer);
             var transcript = event.results[0][0].transcript;
+            console.log('[VoiceRecorder] transcript received:', transcript);
             onResult(transcript);
         };
 
         recognition.onend = function () {
             clearTimeout(silenceTimer);
+            console.log('[VoiceRecorder] recognition ended');
             onStateChange && onStateChange('idle');
         };
 
@@ -43,14 +46,20 @@ window.VoiceRecorder = (function () {
             clearTimeout(silenceTimer);
             onStateChange && onStateChange('idle');
             if (event.error !== 'no-speech') {
-                console.error('SpeechRecognition error:', event.error);
+                console.error('[VoiceRecorder] SpeechRecognition error:', event.error,
+                    '— common causes: "not-allowed" (mic permission denied or blocked by browser/OS), ' +
+                    '"audio-capture" (no microphone found/in use by another app), "network" (recognition ' +
+                    'service unreachable).');
+            } else {
+                console.warn('[VoiceRecorder] no speech detected — check the correct microphone is selected ' +
+                    'as the OS/browser input device and that it is not muted.');
             }
         };
 
         return {
             start: function () {
                 try { recognition.start(); }
-                catch (e) { console.warn('SpeechRecognition start failed:', e.message); }
+                catch (e) { console.warn('[VoiceRecorder] SpeechRecognition start failed:', e.message); }
             },
             stop: function () {
                 clearTimeout(silenceTimer);
@@ -116,6 +125,19 @@ window.VoiceRecorder = (function () {
     var hasMediaRecorder     = !!(window.MediaRecorder && navigator.mediaDevices);
     var isSupported          = hasSpeechRecognition || (isMobile && hasMediaRecorder);
 
+    // Diagnostic: open DevTools (F12) -> Console to see this on every page load. If
+    // isSupported is false, the mic button is correctly hidden — check hasSpeechRecognition
+    // (false on desktop Firefox, which has no SpeechRecognition implementation) and
+    // isMobile/hasMediaRecorder for the mobile fallback path.
+    console.log('[VoiceRecorder] feature detection:', {
+        hasSpeechRecognition: hasSpeechRecognition,
+        hasMediaRecorder:     hasMediaRecorder,
+        isMobile:             isMobile,
+        isSupported:          isSupported,
+        protocol:             window.location.protocol,
+        hostname:             window.location.hostname
+    });
+
     return {
         isSupported:      isSupported,
         isMobileMode:     isMobile && !hasSpeechRecognition && hasMediaRecorder,
@@ -130,6 +152,8 @@ window.VoiceRecorder = (function () {
                 // Mobile fallback — MediaRecorder for audio capture
                 return createMediaRecorderRecorder(onResult, onStateChange);
             }
+            console.warn('[VoiceRecorder] create() called but no recording backend is available ' +
+                '(isSupported should have been false — the mic button should not be visible).');
             return null;
         }
     };

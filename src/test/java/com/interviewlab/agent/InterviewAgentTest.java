@@ -100,7 +100,7 @@ class InterviewAgentTest {
         Message prevQuestion = new Message(SESSION_ID, MessageRole.INTERVIEWER, "Tell me about Java.", 1, false);
         when(messageService.getSessionMessages(SESSION_ID)).thenReturn(List.of(prevQuestion));
         when(agentToolChain.execute(any(AgentContext.class))).thenReturn(Map.of());
-        when(promptBuilder.buildFollowUpPrompt(any(), any(), any(), any())).thenReturn("Follow-up prompt");
+        when(promptBuilder.buildFollowUpPrompt(any(), anyInt(), any(), any(), any())).thenReturn("Follow-up prompt");
         when(aiProvider.generate(eq("Follow-up prompt"), any())).thenReturn("Can you describe a complex problem you solved?");
 
         UUID candidateMsgId = UUID.randomUUID();
@@ -137,7 +137,7 @@ class InterviewAgentTest {
         );
         when(messageService.getSessionMessages(SESSION_ID)).thenReturn(history);
         when(agentToolChain.execute(any(AgentContext.class))).thenReturn(Map.of());
-        when(promptBuilder.buildFollowUpPrompt(any(), any(), any(), any())).thenReturn("Follow-up prompt");
+        when(promptBuilder.buildFollowUpPrompt(any(), anyInt(), any(), any(), any())).thenReturn("Follow-up prompt");
         when(aiProvider.generate(eq("Follow-up prompt"), any())).thenReturn("Closing remarks.");
 
         UUID candidateMsgId = UUID.randomUUID();

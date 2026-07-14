@@ -130,23 +130,35 @@ function InterviewScreen({ sessionId, voiceEnabled, firstQuestion, totalQuestion
 
     // Opens a new SpeechRecognition session; transcript auto-submits when voice is enabled.
     function createAndStartRecorder() {
-        if (!window.VoiceRecorder.isSupported) return;
+        if (!window.VoiceRecorder.isSupported) {
+            console.warn('[InterviewScreen] mic clicked but VoiceRecorder.isSupported is false — button should have been hidden');
+            return;
+        }
         const recorder = window.VoiceRecorder.create(
             function onResult(transcript) {
+                console.log('[InterviewScreen] transcript populated into answer box:', transcript);
                 setInputText(transcript);
                 setVoiceState('idle');
                 if (voiceEnabled) sendAnswerRef.current(transcript);
             },
             function onStateChange(state) { setVoiceState(state); }
         );
-        if (!recorder) return;
+        if (!recorder) {
+            console.warn('[InterviewScreen] VoiceRecorder.create() returned null despite isSupported=true — recorder init failed, see [VoiceRecorder] logs above');
+            return;
+        }
         recorderRef.current = recorder;
         recorder.start();
     }
 
     function toggleVoice() {
         if (!window.VoiceRecorder.isSupported) return;
-        if (voiceState === 'recording') { recorderRef.current?.stop(); return; }
+        if (voiceState === 'recording') {
+            console.log('[InterviewScreen] mic clicked — stopping recording');
+            recorderRef.current?.stop();
+            return;
+        }
+        console.log('[InterviewScreen] mic clicked — starting recording');
         createAndStartRecorder();
     }
 

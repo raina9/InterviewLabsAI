@@ -68,7 +68,8 @@ public class InterviewAgent {
         AgentContext ctx       = new AgentContext(userId, sessionId, candidateMessage.getId(), candidateAnswer);
         Map<String, String> toolResults = agentToolChain.execute(ctx);
 
-        String prompt        = promptBuilder.buildFollowUpPrompt(session, lastQuestion, candidateAnswer, toolResults);
+        String prompt        = promptBuilder.buildFollowUpPrompt(
+            session, questionNumber + 1, lastQuestion, candidateAnswer, toolResults);
         String agentResponse = aiProviderFactory.getDefaultProvider().generate(prompt, questionsOptions());
 
         messageService.addMessage(sessionId, MessageRole.INTERVIEWER, agentResponse, false);

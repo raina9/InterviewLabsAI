@@ -21,17 +21,19 @@ public class InterviewAgentPromptBuilder {
             + "Interview Type: " + session.getInterviewType() + "\n"
             + "Target Role: "    + session.getTargetRole()    + "\n"
             + "Job Description:\n" + session.getJdText()      + "\n\n"
+            + buildPhaseContext(1)
             + buildToolContext(toolResults)
             + "Ask the first interview question.";
     }
 
-    public String buildFollowUpPrompt(Session session, String lastQuestion,
+    public String buildFollowUpPrompt(Session session, int nextQuestionNumber, String lastQuestion,
                                       String candidateAnswer, Map<String, String> toolResults) {
         return agentProperties.interviewSystemPrompt() + "\n\n"
             + "Interview Type: "   + session.getInterviewType() + "\n"
             + "Target Role: "      + session.getTargetRole()    + "\n"
             + "Last Question: "    + lastQuestion               + "\n"
             + "Candidate Answer: " + candidateAnswer            + "\n\n"
+            + buildPhaseContext(nextQuestionNumber)
             + buildToolContext(toolResults)
             + agentProperties.followUpInstruction();
     }
@@ -42,8 +44,14 @@ public class InterviewAgentPromptBuilder {
             + "Interview Type: " + session.getInterviewType() + "\n"
             + "Target Role: "    + session.getTargetRole()    + "\n"
             + "Question number: " + questionNumber + "\n\n"
+            + buildPhaseContext(questionNumber)
             + buildToolContext(toolResults)
             + agentProperties.moveOnInstruction();
+    }
+
+    private String buildPhaseContext(int questionNumber) {
+        InterviewPhase phase = InterviewPhase.forQuestionNumber(questionNumber);
+        return "Current phase: " + phase.label() + ". " + phase.instruction() + "\n\n";
     }
 
     private String buildToolContext(Map<String, String> toolResults) {
