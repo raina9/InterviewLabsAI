@@ -52,7 +52,9 @@ public class UserProfileService {
 
     @Transactional
     public UserProfile updateResumeUrl(UUID userId, String resumeUrl) {
-        UserProfile profile = findProfileOrThrow(userId);
+        // Upsert: a user can upload a resume before ever calling any profile-creating
+        // endpoint (e.g. the dev seed user has a users row but no user_profiles row).
+        UserProfile profile = getOrCreateProfile(userId);
         profile.setResumeUrl(resumeUrl);
         try {
             UserProfile saved = userProfileRepository.save(profile);

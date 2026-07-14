@@ -367,7 +367,11 @@ function InterviewScreen({ sessionId, voiceEnabled, firstQuestion, totalQuestion
                 {/* Input bar */}
                 {!sessionComplete && (
                     <div className="flex items-end gap-2.5 px-5 py-4 border-t border-border bg-surface flex-shrink-0">
-                        {voiceEnabled && window.VoiceRecorder.isSupported && (
+                        {/* Mic button: visible whenever the browser supports voice input, independent
+                            of the intake-time "hands-free" voiceEnabled toggle (which only controls
+                            auto-speak + auto-restart-listening). Graceful hide only when the API is
+                            truly unavailable — see VoiceRecorder.isSupported. */}
+                        {window.VoiceRecorder.isSupported && (
                             <div className="relative flex-shrink-0">
                                 {voiceState === 'recording' && (
                                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping z-10" />

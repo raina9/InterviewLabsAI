@@ -111,13 +111,16 @@ class UserProfileServiceTest {
     }
 
     @Test
-    void updateResumeUrl_profileNotFound_throwsProfileException() {
+    void updateResumeUrl_profileMissing_createsProfileAndSetsResumeUrl() {
+        when(aiProperties.defaultProvider()).thenReturn(AiProvider.OLLAMA);
         when(userProfileRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
+        when(userProfileRepository.save(any(UserProfile.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThatThrownBy(() -> userProfileService.updateResumeUrl(USER_ID, "/files/x.pdf"))
-            .isInstanceOf(ProfileException.class)
-            .satisfies(ex -> assertThat(((ProfileException) ex).errorCode())
-                .isEqualTo(ErrorCode.PROFILE_NOT_FOUND));
+        UserProfile result = userProfileService.updateResumeUrl(USER_ID, "/files/" + USER_ID + "/resume.pdf");
+
+        assertThat(result.getResumeUrl()).isEqualTo("/files/" + USER_ID + "/resume.pdf");
+        assertThat(result.getPreferredAiProvider()).isEqualTo(AiProvider.OLLAMA);
+        verify(userProfileRepository, times(2)).save(any(UserProfile.class));
     }
 
     @Test
