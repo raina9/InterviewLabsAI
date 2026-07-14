@@ -18,20 +18,28 @@ import org.springframework.stereotype.Component;
 @Component
 public class DeploymentModeValidator {
 
+    private static final String NOT_CONFIGURED = "not-configured";
+
     private final DeploymentProperties deploymentProperties;
     private final AuthProperties authProperties;
     private final String redisUrl;
     private final String aiProvider;
+    private final String googleClientId;
+    private final String googleClientSecret;
 
     public DeploymentModeValidator(
             DeploymentProperties deploymentProperties,
             AuthProperties authProperties,
             @Value("${spring.data.redis.url:}") String redisUrl,
-            @Value("${app.ai.provider:ollama}") String aiProvider) {
+            @Value("${app.ai.provider:ollama}") String aiProvider,
+            @Value("${GOOGLE_CLIENT_ID:not-configured}") String googleClientId,
+            @Value("${GOOGLE_CLIENT_SECRET:not-configured}") String googleClientSecret) {
         this.deploymentProperties = deploymentProperties;
         this.authProperties = authProperties;
         this.redisUrl = redisUrl;
         this.aiProvider = aiProvider;
+        this.googleClientId = googleClientId;
+        this.googleClientSecret = googleClientSecret;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -40,7 +48,11 @@ public class DeploymentModeValidator {
             return;
         }
 
-        if ("dev".equalsIgnoreCase(authProperties.mode())) {
+        // Mirrors SecurityConfig's filter-wiring decision (via AuthProperties.isOAuthEffective)
+        // rather than checking the raw mode string — a blank AUTH_MODE with no Google
+        // credentials resolves to dev-token auth just as surely as an explicit AUTH_MODE=dev,
+        // and must trip this guard the same way.
+        if (!authProperties.isOAuthEffective(hasGoogleCredentials())) {
             throw new IllegalStateException(
                 "DEPLOYMENT_MODE=production requires AUTH_MODE=oauth. " +
                 "AUTH_MODE=dev bypasses real authentication and is not production-safe."
@@ -62,5 +74,14 @@ public class DeploymentModeValidator {
         }
 
         log.info("DEPLOYMENT_MODE=production readiness checks passed");
+    }
+
+    private boolean hasGoogleCredentials() {
+        return googleClientId != null
+            && !NOT_CONFIGURED.equals(googleClientId)
+            && !googleClientId.isBlank()
+            && googleClientSecret != null
+            && !NOT_CONFIGURED.equals(googleClientSecret)
+            && !googleClientSecret.isBlank();
     }
 }

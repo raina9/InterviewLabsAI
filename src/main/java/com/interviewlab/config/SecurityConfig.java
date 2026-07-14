@@ -104,8 +104,9 @@ public class SecurityConfig {
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             );
 
-        boolean useOAuth = "oauth".equalsIgnoreCase(authProperties.mode())
-            || (authProperties.autoDetect() && hasGoogleCredentials());
+        // Delegates to AuthProperties.isOAuthEffective — explicit AUTH_MODE always wins over
+        // auto-detect; only a blank/unset AUTH_MODE falls through to Google-credential detection.
+        boolean useOAuth = authProperties.isOAuthEffective(hasGoogleCredentials());
 
         if (useOAuth) {
             String reason = "oauth".equalsIgnoreCase(authProperties.mode())

@@ -228,9 +228,14 @@ app:
   # oauth mode: JwtAuthFilter + oauth2Login active, DevTokenFilter skipped
   # ---------------------------------------------------------------------------
   auth:
-    # dev | oauth — controls which auth path is active (see SecurityConfig)
-    mode: ${AUTH_MODE:dev}
-    # true: auto-switch to oauth when GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET are set, regardless of AUTH_MODE
+    # dev | oauth | blank — explicit dev/oauth always wins over auto-detect (see
+    # AuthProperties.isOAuthEffective). Only a blank/unset AUTH_MODE falls through
+    # to auto-detect. Default left blank on purpose — do not default this to "dev",
+    # that would make it indistinguishable from an explicit choice.
+    mode: ${AUTH_MODE:}
+    # Only consulted when AUTH_MODE is blank: auto-switch to oauth when
+    # GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET are set. Ignored whenever AUTH_MODE
+    # is explicitly dev or oauth.
     auto-detect: ${AUTH_AUTO_DETECT:true}
     # Dev token compared against X-Dev-Token request header in dev mode
     dev-token: ${DEV_TOKEN:dev-secret}

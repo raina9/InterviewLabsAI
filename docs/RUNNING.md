@@ -35,6 +35,11 @@ curl -H "X-Dev-Token: dev-secret" http://localhost:1212/api/v1/auth/me
 ```
 
 ## Troubleshooting
+- 401 with dev token despite `AUTH_MODE=dev` → check if Google credentials in `.env`
+  triggered auto-detect. Fixed: explicit `AUTH_MODE` now always wins over auto-detection
+  — `AUTH_MODE=dev` forces dev-token auth even if `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`
+  are present; auto-detect only applies when `AUTH_MODE` is left blank/unset
+  (see `AuthProperties.isOAuthEffective`).
 - "Ollama call failed" → Ollama not running, or first-call cold start timeout — retry once
 - Port 1212 busy → stop previous instance (Ctrl+C) or check for orphan Java process
 - Flyway checksum error → `docker-compose down -v` (resets local DB), then restart
