@@ -1,5 +1,7 @@
 # Running InterviewLab — Single User (Local)
 
+Demo walkthrough + API collection: see [docs/DEMO_HANDBOOK.md](DEMO_HANDBOOK.md) and [postman/](../postman/)
+
 ## Prerequisites
 - Java 25, Maven, Docker Desktop (for PostgreSQL)
 - Ollama installed with llama3.2 model: `ollama pull llama3.2`

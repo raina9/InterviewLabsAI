@@ -1,0 +1,763 @@
+{
+  "info": {
+    "name": "InterviewLab",
+    "description": "InterviewLab API — context-aware mock interviews, mentor feedback loop, quiz/drill/code practice, and proficiency tracking. Base collection for local single-user demo (AUTH_MODE=dev). See docs/DEMO_HANDBOOK.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:1212", "type": "string" },
+    { "key": "devToken", "value": "dev-secret-local", "type": "string" },
+    { "key": "sessionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "quizSessionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "drillSessionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "challengeId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "userId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "feedbackId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Get current user",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "me"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "me"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"email\": \"dev@interviewlab.local\",\n  \"name\": \"Dev User\",\n  \"picture\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] }
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] } },
+              "status": "No Content",
+              "code": 204,
+              "header": [],
+              "body": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Get profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/profile", "host": ["{{baseUrl}}"], "path": ["api", "v1", "profile"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/profile", "host": ["{{baseUrl}}"], "path": ["api", "v1", "profile"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"experienceYears\": 3,\n  \"currentRole\": \"Backend Engineer\",\n  \"techStack\": [\"Java\", \"Spring Boot\", \"PostgreSQL\", \"Kafka\"],\n  \"resumeText\": null,\n  \"resumeUrl\": null,\n  \"customPrompt\": null,\n  \"preferredAiProvider\": \"OLLAMA\",\n  \"updatedAt\": \"2026-07-16T09:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update profile metadata",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"experienceYears\": 3,\n  \"currentRole\": \"Backend Engineer\",\n  \"techStack\": [\"Java\", \"Spring Boot\", \"PostgreSQL\", \"Kafka\"],\n  \"preferredAiProvider\": \"OLLAMA\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/profile", "host": ["{{baseUrl}}"], "path": ["api", "v1", "profile"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update custom prompt",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customPrompt\": \"Push me hard on distributed systems trade-offs — I want interviewer-level scrutiny, not encouragement.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/profile/custom-prompt", "host": ["{{baseUrl}}"], "path": ["api", "v1", "profile", "custom-prompt"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me"] }
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me"] } },
+              "status": "No Content",
+              "code": 204,
+              "header": [],
+              "body": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Resume",
+      "item": [
+        {
+          "name": "Upload resume PDF",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/me/resume", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me", "resume"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/me/resume", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me", "resume"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"resumeUrl\": \"/storage/resumes/3fa85f64-5717-4562-b3fc-2c963f66afa6/resume.pdf\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update resume text",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resumeText\": \"Backend Engineer, 3 years. Java, Spring Boot, PostgreSQL, Kafka, Docker. Built a REST API platform handling 10k req/day; owns CI/CD pipeline.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/profile/resume", "host": ["{{baseUrl}}"], "path": ["api", "v1", "profile", "resume"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interviewType\": \"TECHNICAL\",\n  \"targetRole\": \"Senior Backend Engineer\",\n  \"jdText\": \"We are looking for a Senior Backend Engineer with strong Java, Spring Boot, and distributed systems experience to own our payments platform.\",\n  \"difficulty\": \"medium\",\n  \"targetCompany\": \"Acme Corp\",\n  \"topicFocus\": \"Kafka, microservices\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions"] }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions"] } },
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"7c9e6679-7425-40de-944b-e07fc1f90ae7\",\n  \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"interviewType\": \"TECHNICAL\",\n  \"targetCompany\": \"Acme Corp\",\n  \"targetRole\": \"Senior Backend Engineer\",\n  \"jdText\": \"We are looking for a Senior Backend Engineer...\",\n  \"topicFocus\": \"Kafka, microservices\",\n  \"difficulty\": \"medium\",\n  \"status\": \"ACTIVE\",\n  \"createdAt\": \"2026-07-16T09:00:00Z\",\n  \"completedAt\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "List sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/sessions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get session by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Complete session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/complete", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "complete"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Abandon session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/abandon", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "abandon"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get session messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/messages", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "{{sessionId}}", "messages"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Interview",
+      "item": [
+        {
+          "name": "Start interview",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/interview/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "interview", "start"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/interview/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "interview", "start"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"sessionId\": \"7c9e6679-7425-40de-944b-e07fc1f90ae7\",\n  \"firstQuestion\": \"Tell me about a time you had to debug a production incident under pressure. What was your approach?\",\n  \"totalQuestions\": 8\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answer\": \"I had a Kafka consumer group falling behind during a traffic spike. I checked consumer lag in Grafana first, found we were CPU-bound on deserialization, and scaled partitions plus consumer instances to restore throughput within 20 minutes.\",\n  \"voiceUsed\": false\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/interview/{{sessionId}}/respond", "host": ["{{baseUrl}}"], "path": ["api", "v1", "interview", "{{sessionId}}", "respond"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/interview/{{sessionId}}/respond", "host": ["{{baseUrl}}"], "path": ["api", "v1", "interview", "{{sessionId}}", "respond"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"agentResponse\": \"Good instinct checking lag first. Let's go deeper — how did you decide partition count vs consumer count to scale?\",\n  \"sessionComplete\": false,\n  \"mentorFeedback\": {\n    \"feedbackGood\": \"Clear diagnostic sequence — metrics before action.\",\n    \"feedbackImprove\": \"Didn't mention how you validated the fix held after scaling.\",\n    \"refinedAnswer\": \"...after scaling, I confirmed consumer lag returned to near-zero over the next two polling intervals before closing the incident.\",\n    \"modelAnswer\": \"A strong answer names the specific metric, the root cause hypothesis, the remediation, and a follow-up verification step.\",\n    \"psychologyNote\": \"Interviewers weight verification steps heavily — it signals you don't consider an incident closed until you've confirmed it.\",\n    \"score\": 7\n  },\n  \"psychologyNudge\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get session feedback",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/interview/{{sessionId}}/feedback", "host": ["{{baseUrl}}"], "path": ["api", "v1", "interview", "{{sessionId}}", "feedback"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit voice transcript",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"transcript\": \"So basically what I did was I looked at the metrics dashboard first and then I scaled up the consumers.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/voice/transcript", "host": ["{{baseUrl}}"], "path": ["api", "v1", "voice", "transcript"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Proficiency",
+      "item": [
+        {
+          "name": "Analyze English proficiency",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transcript\": \"So basically what I did was I looked at the metrics dashboard first and then I scaled up the consumers.\",\n  \"sessionId\": \"{{sessionId}}\",\n  \"context\": \"interview\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/english/analyze", "host": ["{{baseUrl}}"], "path": ["api", "v1", "english", "analyze"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/english/analyze", "host": ["{{baseUrl}}"], "path": ["api", "v1", "english", "analyze"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"feedback\": {\n    \"fluencyNote\": \"Reasonably fluent but relies on filler openers.\",\n    \"tenseFeedback\": \"Past tense used consistently and correctly.\",\n    \"fillerWordsDetected\": \"'so basically', 'and then' used as connectors — reduce for a crisper narrative.\",\n    \"vocabularyNote\": \"Vocabulary is functional but generic — name the specific metric and tool.\",\n    \"confidenceNote\": \"Tone reads slightly tentative — lead with the action, not the process.\",\n    \"improvedVersion\": \"I checked the consumer lag metric in Grafana, then scaled the consumer instances to restore throughput.\",\n    \"fluencyScore\": 6\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Quiz",
+      "item": [
+        {
+          "name": "Start quiz",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topic\": \"Spring Boot\",\n  \"difficulty\": \"medium\",\n  \"questionCount\": 5\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/quiz/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "quiz", "start"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/quiz/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "quiz", "start"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"sessionId\": \"9b2e4f10-1a2b-4c3d-8e5f-6a7b8c9d0e1f\",\n  \"topic\": \"Spring Boot\",\n  \"difficulty\": \"medium\",\n  \"totalQuestions\": 5,\n  \"currentIndex\": 0,\n  \"score\": 0,\n  \"currentQuestion\": \"Which annotation enables component scanning in a Spring Boot application?\",\n  \"currentOptions\": [\"@ComponentScan\", \"@EnableAutoConfiguration\", \"@Bean\", \"@Configuration\"]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit quiz answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answer\": \"@ComponentScan\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/quiz/{{quizSessionId}}/answer", "host": ["{{baseUrl}}"], "path": ["api", "v1", "quiz", "{{quizSessionId}}", "answer"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/quiz/{{quizSessionId}}/answer", "host": ["{{baseUrl}}"], "path": ["api", "v1", "quiz", "{{quizSessionId}}", "answer"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"correct\": true,\n  \"explanation\": \"@ComponentScan tells Spring where to look for annotated components.\",\n  \"correctAnswer\": \"@ComponentScan\",\n  \"score\": 1,\n  \"totalAnswered\": 1,\n  \"sessionComplete\": false,\n  \"nextQuestion\": \"What is the default scope of a Spring bean?\",\n  \"nextOptions\": [\"singleton\", \"prototype\", \"request\", \"session\"]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get quiz result",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/quiz/{{quizSessionId}}/result", "host": ["{{baseUrl}}"], "path": ["api", "v1", "quiz", "{{quizSessionId}}", "result"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/quiz/{{quizSessionId}}/result", "host": ["{{baseUrl}}"], "path": ["api", "v1", "quiz", "{{quizSessionId}}", "result"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"totalQuestions\": 5,\n  \"correctAnswers\": 4,\n  \"scorePercent\": 80,\n  \"topicBreakdown\": { \"Spring Boot\": 4 }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Drill",
+      "item": [
+        {
+          "name": "Start drill",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topic\": \"Kafka\",\n  \"mode\": \"RAPID\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/drill/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "drill", "start"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/drill/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "drill", "start"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"sessionId\": \"1d2e3f40-5a6b-7c8d-9e0f-1a2b3c4d5e6f\",\n  \"topic\": \"Kafka\",\n  \"mode\": \"RAPID\",\n  \"currentQuestion\": \"What guarantees does Kafka provide about message ordering within a partition?\",\n  \"questionsAnswered\": 0,\n  \"complete\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit drill answer / next question",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answer\": \"Kafka guarantees ordering only within a single partition, not across partitions of the same topic.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/drill/{{drillSessionId}}/next", "host": ["{{baseUrl}}"], "path": ["api", "v1", "drill", "{{drillSessionId}}", "next"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get drill summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/drill/{{drillSessionId}}/summary", "host": ["{{baseUrl}}"], "path": ["api", "v1", "drill", "{{drillSessionId}}", "summary"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/drill/{{drillSessionId}}/summary", "host": ["{{baseUrl}}"], "path": ["api", "v1", "drill", "{{drillSessionId}}", "summary"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"topic\": \"Kafka\",\n  \"mode\": \"RAPID\",\n  \"questionsAnswered\": 10,\n  \"avgScore\": 7.2,\n  \"weakSpots\": [\"consumer rebalancing\", \"exactly-once semantics\"],\n  \"strongPoints\": [\"partitioning\", \"message ordering\"]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Code Challenge",
+      "item": [
+        {
+          "name": "Generate challenge",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topic\": \"arrays\",\n  \"difficulty\": \"medium\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/code/challenge", "host": ["{{baseUrl}}"], "path": ["api", "v1", "code", "challenge"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/code/challenge", "host": ["{{baseUrl}}"], "path": ["api", "v1", "code", "challenge"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"2e3f4a50-6b7c-8d9e-0f1a-2b3c4d5e6f7a\",\n  \"title\": \"Two Sum\",\n  \"description\": \"Given an array of integers and a target, return indices of the two numbers that add up to the target.\",\n  \"starterCode\": { \"java\": \"public int[] twoSum(int[] nums, int target) {\\n    // TODO\\n}\" },\n  \"testCases\": [\"[2,7,11,15], target=9 -> [0,1]\"],\n  \"constraints\": [\"Exactly one valid answer exists\", \"O(n) time preferred\"]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit code solution",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"code\": \"public int[] twoSum(int[] nums, int target) {\\n    Map<Integer, Integer> seen = new HashMap<>();\\n    for (int i = 0; i < nums.length; i++) {\\n        int complement = target - nums[i];\\n        if (seen.containsKey(complement)) return new int[]{seen.get(complement), i};\\n        seen.put(nums[i], i);\\n    }\\n    throw new IllegalArgumentException(\\\"No solution\\\");\\n}\",\n  \"language\": \"java\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/code/submit", "host": ["{{baseUrl}}"], "path": ["api", "v1", "code", "submit"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/code/submit", "host": ["{{baseUrl}}"], "path": ["api", "v1", "code", "submit"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"passed\": true,\n  \"feedback\": \"Correct and optimal — O(n) time using a hash map.\",\n  \"refinedCode\": null,\n  \"explanation\": \"Single pass hash map lookup avoids the O(n^2) brute-force nested loop.\",\n  \"executionResult\": \"All test cases passed.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get challenge hint",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/code/challenge/{{challengeId}}/hint", "host": ["{{baseUrl}}"], "path": ["api", "v1", "code", "challenge", "{{challengeId}}", "hint"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assessment",
+      "item": [
+        {
+          "name": "Start assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/assessment/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "assessment", "start"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/assessment/start", "host": ["{{baseUrl}}"], "path": ["api", "v1", "assessment", "start"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"topics\": [\"Java\", \"Spring Boot\", \"PostgreSQL\", \"Kafka\"],\n  \"instructions\": \"Rate your confidence in each topic from 1 (beginner) to 10 (expert).\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit self-ratings",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ratings\": [\n    { \"topic\": \"Java\", \"rating\": 4 },\n    { \"topic\": \"Spring Boot\", \"rating\": 4 },\n    { \"topic\": \"PostgreSQL\", \"rating\": 3 },\n    { \"topic\": \"Kafka\", \"rating\": 3 }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/assessment/submit", "host": ["{{baseUrl}}"], "path": ["api", "v1", "assessment", "submit"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/assessment/submit", "host": ["{{baseUrl}}"], "path": ["api", "v1", "assessment", "submit"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Get proficiency report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/assessment/report/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "assessment", "report", "{{userId}}"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/assessment/report/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "assessment", "report", "{{userId}}"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"topics\": [\n    { \"topic\": \"Java\", \"selfRating\": 4, \"level\": \"Intermediate\", \"recommendation\": \"Solidify generics and concurrency before moving on.\" },\n    { \"topic\": \"Spring Boot\", \"selfRating\": 4, \"level\": \"Intermediate\", \"recommendation\": \"Deepen auto-configuration and actuator internals.\" },\n    { \"topic\": \"PostgreSQL\", \"selfRating\": 3, \"level\": \"Beginner\", \"recommendation\": \"Practice indexing strategies and query plans.\" },\n    { \"topic\": \"Kafka\", \"selfRating\": 3, \"level\": \"Beginner\", \"recommendation\": \"Study consumer group rebalancing and delivery guarantees.\" }\n  ],\n  \"overallLevel\": \"Intermediate\",\n  \"criticalGaps\": [\"Kafka internals\", \"distributed transactions\"],\n  \"quickWins\": [\"PostgreSQL indexing strategies\"]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Curriculum",
+      "item": [
+        {
+          "name": "Generate curriculum",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/curriculum/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "curriculum", "{{userId}}"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/curriculum/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "curriculum", "{{userId}}"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"items\": [\n    {\n      \"topic\": \"Kafka internals\",\n      \"priority\": \"HIGH\",\n      \"whyThisMatters\": \"Flagged as a critical gap in your assessment report — high interview risk for senior backend roles.\",\n      \"estimatedDays\": \"5\",\n      \"keyConceptsToCover\": [\"consumer group rebalancing\", \"exactly-once semantics\", \"DLQ + retry topics\"]\n    }\n  ],\n  \"estimatedWeeks\": \"4\",\n  \"focus\": \"Distributed systems depth for senior backend interviews\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get platform stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/stats", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "stats"] }
+          },
+          "response": [
+            {
+              "name": "200 OK (ADMIN role)",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/admin/stats", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "stats"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"sessionsToday\": 3,\n  \"sessionsTotal\": 42,\n  \"activeUsersToday\": 1,\n  \"avgSessionScore\": 7.1,\n  \"featureUsage\": { \"interview\": 42, \"quiz\": 0, \"drill\": 0, \"codeChallenge\": 0 },\n  \"aiCallsToday\": 18\n}"
+            },
+            {
+              "name": "403 Forbidden (non-admin)",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/admin/stats", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "stats"] } },
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"errorCode\": \"FORBIDDEN_ADMIN_ONLY\",\n  \"message\": \"This action requires administrator privileges.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Toggle system feedback applied",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Dev-Token", "value": "{{devToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applied\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/system-feedback/{{feedbackId}}/applied", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "system-feedback", "{{feedbackId}}", "applied"] }
+          },
+          "response": [
+            {
+              "name": "204 No Content (ADMIN role)",
+              "originalRequest": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/admin/system-feedback/{{feedbackId}}/applied", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "system-feedback", "{{feedbackId}}", "applied"] } },
+              "status": "No Content",
+              "code": 204,
+              "header": [],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator", "health"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator", "health"] } },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"UP\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
